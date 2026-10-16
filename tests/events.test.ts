@@ -8,6 +8,10 @@ describe('analytics ingestion endpoint', () => {
     ['sidebar_open', {}],
     ['sidebar_item_selected', {item: 'Search'}],
     ['advertise_whatsapp_launch', {outcome: 'success'}],
+    ['ad_impression', {id: 'ad-1', placement: 'home-top'}],
+    ['ad_rotated', {id: 'ad-2', placement: 'section'}],
+    ['ad_contact_clicked', {id: 'ad-1', contact: 'WhatsApp'}],
+    ['ad_reported', {id: 'ad-1'}],
   ])('accepts the documented %s event properties', async (name, properties) => {
     vi.stubEnv('APPWRITE_API_KEY', 'test'); vi.stubEnv('APPWRITE_ENDPOINT', 'https://appwrite.example'); vi.stubEnv('APPWRITE_PROJECT_ID', 'project'); vi.stubEnv('APPWRITE_DATABASE_ID', 'database'); vi.stubEnv('APPWRITE_ANALYTICS_COLLECTION_ID', 'events');
     const res = response();

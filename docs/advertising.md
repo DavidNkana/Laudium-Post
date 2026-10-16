@@ -6,6 +6,12 @@ The reader's **ADVERTISE WITH US** action opens WhatsApp with an editable messag
 
 The client emits `advertise_cta_clicked` and `advertise_whatsapp_launch` (`success`/`failure`) through the existing analytics seam. The message text and phone number are never sent as analytics properties.
 
+## Public advertising projection
+
+Advertiser contact details are private source data. Each private `advertiser_records` contact has an explicit consent boolean (`phoneConsent`, `whatsappConsent`, `emailConsent`, `websiteConsent`, or `directionsUrlConsent`). The publishing function applies the same `Approved` + `active` + start/end-date boundary as the reader and copies only consented contacts into the `public_ads.contacts` projection. It never exposes the private collection, raw private contact columns, or consent flags to readers. A stale, malformed, unapproved, inactive, or out-of-date record is also rejected by both adapters, including deep links.
+
+The public inventory uses three home placements (`home-top`, `home-latest-end`, `home-directory-end`) and low-density `section`, `community`, `search`, and `article` slots. Home rotation remains 10 seconds and pauses on hidden documents and reduced-motion preferences.
+
 ## WhatsApp mark
 
 The rail button uses a locally bundled SVG copied from the [Simple Icons WhatsApp asset](https://cdn.simpleicons.org/whatsapp), a reputable open-source brand-icon source. Meta's [WhatsApp brand resource](https://www.meta.com/brand/resources/whatsapp/whatsapp-brand/) is the preferred brand reference. The artwork keeps its source colour and proportions; the button is a channel link and does not imply WhatsApp endorsement or partnership.

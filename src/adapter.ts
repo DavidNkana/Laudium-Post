@@ -1,5 +1,5 @@
 import {Client, Databases, Query} from 'appwrite';
-import {articles, ads, Article, Ad, AdPlacement} from './data';
+import {articles, ads, Article, Ad, AdContacts, AdPlacement} from './data';
 import {eligibleAds} from './advertising';
 
 export type PageResult<T> = {items: T[]; nextCursor?: string; hasMore: boolean};
@@ -24,10 +24,10 @@ export class DemoContentAdapter implements ContentAdapter {
   }
   async getArticle(id: string) { return articles.find(a => a.id === id); }
   async listAds(query = '', options: PageOptions = {}, placement?: AdPlacement) {
-    const filtered = (placement ? eligibleAds(ads, placement) : ads).filter(a => !query || `${a.business} ${a.title} ${a.category}`.toLowerCase().includes(query.toLowerCase()));
+    const filtered = (placement ? eligibleAds(ads, placement).map(toPublicAd) : ads.filter(ad => isPublicAdEligible(ad)).map(toPublicAd)).filter(a => !query || `${a.business} ${a.title} ${a.category}`.toLowerCase().includes(query.toLowerCase()));
     return page(filtered, options.cursor, options.limit);
   }
-  async getAd(id: string) { return ads.find(a => a.id === id); }
+  async getAd(id: string) { const ad = ads.find(a => a.id === id); return ad && isPublicAdEligible(ad) ? toPublicAd(ad) : undefined; }
 }
 
 type AppwriteConfig = {endpoint: string; projectId: string; databaseId: string; articlesCollectionId: string; adsCollectionId: string};
@@ -47,6 +47,20 @@ export function isLiveAdDocument(document: Record<string, any>, now = new Date()
     startsAt.getTime() <= now.getTime() && now.getTime() <= endsAt.getTime();
 }
 
+export function isPublicAdEligible(ad: Ad, now = new Date()): boolean {
+  return ad.status === 'Approved' && ad.active === true && !!ad.startsAt && !!ad.endsAt &&
+    Number.isFinite(new Date(ad.startsAt).getTime()) && Number.isFinite(new Date(ad.endsAt).getTime()) &&
+    new Date(ad.startsAt).getTime() <= now.getTime() && now.getTime() <= new Date(ad.endsAt).getTime();
+}
+
+function toPublicContacts(contacts: AdContacts | undefined, consent: Ad['contactConsent']): AdContacts | undefined {
+  if (!contacts) return undefined;
+  const publicContacts = Object.fromEntries(Object.entries(contacts).filter(([key, value]) => value && consent?.[`${key}Consent` as keyof NonNullable<Ad['contactConsent']>] === true));
+  return Object.keys(publicContacts).length ? publicContacts as AdContacts : undefined;
+}
+
+const toPublicAd = (ad: Ad): Ad => ({...ad, contacts: toPublicContacts(ad.contacts, ad.contactConsent)});
+
 export function filterLiveAds(documents: Record<string, any>[], now = new Date()) {
   return documents.filter(document => isLiveAdDocument(document, now));
 }
@@ -63,7 +77,7 @@ export function articleQueries(search: string, category: string, limit: number, 
   return queries;
 }
 
-export function adQueries(search: string, limit: number, cursor?: string, now = new Date()) {
+export function adQueries(search: string, limit: number, cursor?: string, now = new Date(), placement?: AdPlacement) {
   const nowIso = now.toISOString();
   const queries = [
     Query.equal('status', 'Approved'), Query.equal('active', true),
@@ -72,6 +86,7 @@ export function adQueries(search: string, limit: number, cursor?: string, now = 
   ];
   if (cursor) queries.push(Query.cursorAfter(cursor));
   if (search) queries.push(Query.or([Query.search('business', search), Query.search('title', search), Query.search('category', search)]));
+  if (placement) queries.push(Query.contains('placements', placement));
   return queries;
 }
 
@@ -107,12 +122,12 @@ export class AppwriteContentAdapter implements ContentAdapter {
       return document.status === 'Published' && new Date(document.publishedAt) <= new Date() ? toArticle(document) : undefined;
     } catch (error) { if ((error as {code?: number}).code === 404) return undefined; throw error; }
   }
-  async listAds(search = '', options: PageOptions = {}, _placement?: AdPlacement) {
+  async listAds(search = '', options: PageOptions = {}, placement?: AdPlacement) {
     const limit = Math.min(Math.max(options.limit || 6, 1), 100);
-    const result = await this.databases.listDocuments(this.config.databaseId, this.config.adsCollectionId, adQueries(search, limit, options.cursor));
+    const result = await this.databases.listDocuments(this.config.databaseId, this.config.adsCollectionId, adQueries(search, limit, options.cursor, new Date(), placement));
     // Query bounds reduce leakage and work efficiently; this second check is
     // intentional because public projections can be stale or malformed.
-    const items = filterLiveAds(result.documents).map(toAd);
+    const items = filterLiveAds(result.documents).filter(document => !placement || Array.isArray(document.placements) && document.placements.includes(placement)).map(toAd);
     return {items, nextCursor: result.documents.at(-1)?.$id, hasMore: result.documents.length === limit};
   }
   async getAd(id: string) {
@@ -124,6 +139,6 @@ export class AppwriteContentAdapter implements ContentAdapter {
 }
 
 const toArticle = (d: Record<string, any>): Article => ({id: d.$id, title: d.title, excerpt: d.excerpt, body: Array.isArray(d.body) ? d.body : [d.body], category: d.category, author: d.author, date: new Date(d.publishedAt).toLocaleDateString('en-GB', {day: 'numeric', month: 'long', year: 'numeric'}), readTime: d.readTime || '5 min read', accent: d.accent || 'ink', featured: d.featured, status: d.status});
-const toAd = (d: Record<string, any>): Ad => ({id: d.$id, business: d.business, title: d.title, description: d.description, offer: d.offer, category: d.category, location: d.location, serviceArea: d.serviceArea, contacts: {phone:d.phone, whatsapp:d.whatsapp, email:d.email, website:d.website, directionsUrl:d.directionsUrl}, accent: d.accent || 'blue', featured: d.featured, startsAt: d.startsAt, endsAt: d.endsAt, status:d.status, active:d.active, placements:d.placements, priority:d.priority, rotationKey:d.rotationKey, media:d.media});
+const toAd = (d: Record<string, any>): Ad => ({id: d.$id, business: d.business, title: d.title, description: d.description, offer: d.offer, category: d.category, location: d.location, serviceArea: d.serviceArea, contacts: d.contacts, accent: d.accent || 'blue', featured: d.featured, startsAt: d.startsAt, endsAt: d.endsAt, status:d.status, active:d.active, placements:d.placements, priority:d.priority, rotationKey:d.rotationKey, media:d.media});
 
 export const contentAdapter: ContentAdapter = import.meta.env.VITE_CONTENT_MODE === 'appwrite' ? new AppwriteContentAdapter() : new DemoContentAdapter();

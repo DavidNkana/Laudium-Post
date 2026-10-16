@@ -23,6 +23,9 @@ describe('content adapter configuration', () => {
     const live = {...base, startsAt: '2026-10-16T11:00:00.000Z', endsAt: '2026-10-16T13:00:00.000Z'};
     expect(filterLiveAds([{...live, $id: 'live'}, {...base, $id: 'missing'}, {...live, $id: 'future', startsAt: '2026-10-16T13:00:01.000Z'}, {...live, $id: 'bad', endsAt: 'not-a-date'}], now).map(x => x.$id)).toEqual(['live']);
   });
+  it('adds a real placement constraint to public ad queries', () => {
+    expect(adQueries('', 2, undefined, new Date('2026-10-16T12:00:00.000Z'), 'community')).toContain('{"method":"contains","attribute":"placements","values":["community"]}');
+  });
   it('uses inclusive live bounds and a unique id tie-breaker for stable cursor pages', () => {
     const queries = adQueries('', 2, 'page-1', new Date('2026-10-16T12:00:00.000Z'));
     expect(queries).toEqual(expect.arrayContaining([

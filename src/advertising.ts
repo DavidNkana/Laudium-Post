@@ -21,6 +21,10 @@ export function nextAd(items: Ad[], currentId: string | undefined, recentIds: st
   return pool[0] || items[0];
 }
 
+export function publicAdContacts(ad: Ad) {
+  return ad.contacts;
+}
+
 export function adContactUrls(ad: Ad): Array<{label:string;href:string}> {
   const contacts = ad.contacts || {}; const actions:Array<{label:string;href:string}> = [];
   if (contacts.phone) actions.push({label:'Call',href:`tel:${contacts.phone}`});
