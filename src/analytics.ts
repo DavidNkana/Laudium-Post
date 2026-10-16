@@ -1,0 +1,2 @@
+export type EventName='article_opened'|'article_saved'|'article_shared'|'ad_opened'|'advertise_cta_clicked'|'search_used'|'admin_action';
+export function track(name:EventName, properties:Record<string,string|number|boolean>={}) { const event={name,properties,at:new Date().toISOString()}; window.dispatchEvent(new CustomEvent('laudium:analytics',{detail:event})); if(import.meta.env.DEV) console.info('[demo analytics]',event); }

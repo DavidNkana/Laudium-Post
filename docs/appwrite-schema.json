@@ -1,0 +1,10 @@
+{
+  "database": {"id":"laudium_post","name":"Laudium Post"},
+  "collections": [
+    {"id":"articles","permissions":["read(\"any\")","create(\"team:editors\")","update(\"team:editors\")","delete(\"team:editors\")"],"attributes":{"title":"string(120)","slug":"string(140)","excerpt":"string(300)","body":"string(30000)","category":"enum[Community,Business,Culture,Sport,Civic]","author":"string(120)","status":"enum[Draft,Published,Scheduled,Archived]","publishedAt":"datetime","featured":"boolean"}},
+    {"id":"ads","permissions":["read(\"any\")","create(\"team:editors\")","update(\"team:editors\")","delete(\"team:editors\")"],"attributes":{"business":"string(120)","title":"string(140)","description":"string(500)","category":"string(80)","location":"string(180)","status":"enum[Pending,Approved,Archived]","featured":"boolean"}},
+    {"id":"corrections","permissions":["create(\"any\")","read(\"team:editors\")","update(\"team:editors\")"],"attributes":{"articleId":"string(80)","message":"string(2000)","email":"email","status":"enum[Open,Resolved]"}}
+  ],
+  "teams": [{"id":"editors","roles":["owner","editor","contributor"]}],
+  "note":"Apply via Appwrite Console or CLI after replacing IDs. Never expose API keys in VITE_* variables. Server-side admin actions require a trusted Appwrite function."
+}

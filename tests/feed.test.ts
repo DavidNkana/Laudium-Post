@@ -1,0 +1,2 @@
+import {describe,expect,it} from 'vitest'; import {sequenceFeed} from '../src/feed'; import {ads,articles} from '../src/data';
+describe('editorial feed',()=>{it('alternates a house ad after every two stories',()=>{const feed=sequenceFeed(articles,ads);expect(feed.map(x=>x.kind)).toEqual(['article','article','ad','article','article','ad']);});it('caps each page without mutating source arrays',()=>{const source=[...articles];expect(sequenceFeed(articles,ads,3)).toHaveLength(3);expect(articles).toEqual(source);});});

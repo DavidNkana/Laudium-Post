@@ -1,0 +1,2 @@
+import {describe,expect,it} from 'vitest'; import {validateDraft} from '../src/validation';
+describe('draft validation',()=>{it('requires editorial essentials',()=>{expect(validateDraft({title:'',excerpt:'',category:''})).toMatchObject({title:'A headline is required',excerpt:'An excerpt is required',category:'Choose a category'});});it('accepts a publishable draft',()=>{expect(validateDraft({title:'A useful headline',excerpt:'A clear summary for readers.',category:'Community'})).toEqual({});});});

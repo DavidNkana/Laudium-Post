@@ -1,0 +1,2 @@
+export type DraftInput={title:string;excerpt:string;category:string};
+export function validateDraft(input:DraftInput){const errors:Partial<Record<keyof DraftInput,string>>={};if(!input.title.trim())errors.title='A headline is required';if(input.title.trim().length>120)errors.title='Keep the headline under 120 characters';if(!input.excerpt.trim())errors.excerpt='An excerpt is required';if(!input.category.trim())errors.category='Choose a category';return errors;}
