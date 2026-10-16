@@ -102,6 +102,14 @@ export async function listAllAds(adapter: Pick<ContentAdapter, 'listAds'>, place
   return all.filter((ad, index, items) => items.findIndex(item => item.id === ad.id) === index);
 }
 
+/** Load the complete public inventory once, partitioned by every supported placement. */
+export async function listAllPlacementAds(adapter: Pick<ContentAdapter, 'listAds'>, placements: AdPlacement[], search = ''): Promise<Ad[]> {
+  const groups = await Promise.all(placements.map(placement => listAllAds(adapter, placement, search)));
+  const unique = new Map<string, Ad>();
+  groups.flat().forEach(ad => unique.set(ad.id, ad));
+  return [...unique.values()];
+}
+
 function readConfig(): AppwriteConfig {
   const config = {
     endpoint: import.meta.env.VITE_APPWRITE_ENDPOINT,

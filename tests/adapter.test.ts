@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, filterLiveAds, listAllAds} from '../src/adapter';
+import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, filterLiveAds, listAllAds, listAllPlacementAds} from '../src/adapter';
 import {requiredPublicIndexes, verifySearchIndexes} from '../src/appwriteSetup';
 
 describe('content adapter configuration', () => {
@@ -34,6 +34,13 @@ describe('content adapter configuration', () => {
     }}, 'home-top');
     expect(result.map(ad => ad.id)).toEqual(['first', 'later']);
     expect(calls).toEqual([{placement: 'home-top'}, {cursor: 'page-2', placement: 'home-top'}]);
+  });
+  it('merges exhaustive placement inventory without dropping later-page ads', async () => {
+    const result = await listAllPlacementAds({listAds: async (_search, options, placement) => {
+      if (placement === 'home-top') return options?.cursor ? {items: [{id: 'top-later'} as any], nextCursor: undefined, hasMore: false} : {items: [{id: 'shared'} as any], nextCursor: 'page-2', hasMore: true};
+      return {items: [{id: 'shared'} as any, {id: 'section-only'} as any], nextCursor: undefined, hasMore: false};
+    }}, ['home-top', 'section']);
+    expect(result.map(ad => ad.id)).toEqual(['shared', 'top-later', 'section-only']);
   });
   it('uses inclusive live bounds and a unique id tie-breaker for stable cursor pages', () => {
     const queries = adQueries('', 2, 'page-1', new Date('2026-10-16T12:00:00.000Z'));
