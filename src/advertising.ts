@@ -25,12 +25,30 @@ export function publicAdContacts(ad: Ad) {
   return ad.contacts;
 }
 
+function safeHttpsUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && !url.username && !url.password ? url.href : undefined;
+  } catch { return undefined; }
+}
+
+function safeTel(value: string | undefined): string | undefined {
+  if (!value || !/^[+\d][\d\s().-]{5,}$/.test(value)) return undefined;
+  return `tel:${value.replace(/[^+\d]/g, '')}`;
+}
+
+function safeMailto(value: string | undefined): string | undefined {
+  if (!value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return undefined;
+  return `mailto:${value}`;
+}
+
 export function adContactUrls(ad: Ad): Array<{label:string;href:string}> {
   const contacts = ad.contacts || {}; const actions:Array<{label:string;href:string}> = [];
-  if (contacts.phone) actions.push({label:'Call',href:`tel:${contacts.phone}`});
+  const phone = safeTel(contacts.phone); if (phone) actions.push({label:'Call',href:phone});
   if (contacts.whatsapp) actions.push({label:'WhatsApp',href:`https://wa.me/${contacts.whatsapp.replace(/\D/g,'')}`});
-  if (contacts.email) actions.push({label:'Email',href:`mailto:${contacts.email}`});
-  if (contacts.website) actions.push({label:'Website',href:contacts.website});
-  if (contacts.directionsUrl) actions.push({label:'Directions',href:contacts.directionsUrl});
+  const email = safeMailto(contacts.email); if (email) actions.push({label:'Email',href:email});
+  const website = safeHttpsUrl(contacts.website); if (website) actions.push({label:'Website',href:website});
+  const directions = safeHttpsUrl(contacts.directionsUrl); if (directions) actions.push({label:'Directions',href:directions});
   return actions;
 }

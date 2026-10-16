@@ -6,6 +6,15 @@ const properties: Record<string, Set<string>> = {
   ad_opened: new Set(['id']), ad_impression: new Set(['id', 'placement']), ad_rotated: new Set(['id', 'placement']), ad_contact_clicked: new Set(['id', 'contact']), ad_reported: new Set(['id']), advertise_cta_clicked: new Set(['path', 'listing']), advertise_whatsapp_launch: new Set(['outcome']),
   sidebar_open: new Set([]), sidebar_item_selected: new Set(['item']), search_used: new Set(['queryLength']), admin_action: new Set(['action']),
 };
+const enums: Record<string, Record<string, Set<string>>> = {
+  article_opened: {category: new Set(['Community', 'Business', 'Culture', 'Sport', 'Civic'])},
+  ad_impression: {placement: new Set(['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article'])},
+  ad_rotated: {placement: new Set(['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article'])},
+  ad_contact_clicked: {contact: new Set(['Call', 'WhatsApp', 'Email', 'Website', 'Directions'])},
+  advertise_cta_clicked: {path: new Set(['sidebar', 'directory'])},
+  advertise_whatsapp_launch: {outcome: new Set(['success', 'failure'])},
+  admin_action: {action: new Set(['New article draft created', 'Opened The city that chooses to stay ready', 'Opened A field guide to the Sunday game', 'Opened Planning a winter on the high street'])},
+};
 const buckets = new Map<string, {count: number; reset: number}>();
 const json = (res: any, status: number, body: unknown) => { res.status(status).setHeader('Content-Type', 'application/json').end(JSON.stringify(body)); };
 
@@ -24,7 +33,7 @@ function validPayload(value: any) {
   if (!value.properties || typeof value.properties !== 'object' || Array.isArray(value.properties)) return false;
   const keys = Object.keys(value.properties);
   if (keys.some(key => !properties[value.name].has(key)) || keys.length > 5) return false;
-  return keys.every(key => ['string', 'number', 'boolean'].includes(typeof value.properties[key]) && String(value.properties[key]).length <= 160);
+  return keys.every(key => ['string', 'number', 'boolean'].includes(typeof value.properties[key]) && String(value.properties[key]).length <= 160 && (!enums[value.name]?.[key] || enums[value.name][key].has(String(value.properties[key]))));
 }
 
 export default async function handler(req: any, res: any) {

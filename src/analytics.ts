@@ -10,6 +10,15 @@ const propertyAllowList: Record<EventName, string[]> = {
   // Search terms are deliberately not an allowed property.
   search_used: ['queryLength'], admin_action: ['action'],
 };
+const propertyEnums: Partial<Record<EventName, Partial<Record<string, readonly AnalyticsValue[]>>>> = {
+  article_opened: {category: ['Community', 'Business', 'Culture', 'Sport', 'Civic']},
+  ad_impression: {placement: ['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article']},
+  ad_rotated: {placement: ['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article']},
+  ad_contact_clicked: {contact: ['Call', 'WhatsApp', 'Email', 'Website', 'Directions']},
+  advertise_cta_clicked: {path: ['sidebar', 'directory']},
+  advertise_whatsapp_launch: {outcome: ['success', 'failure']},
+  admin_action: {action: ['New article draft created', 'Opened The city that chooses to stay ready', 'Opened A field guide to the Sunday game', 'Opened Planning a winter on the high street']},
+};
 
 export type AnalyticsConfig = {durable: boolean; error?: string; endpoint?: string};
 export function validateAnalyticsConfig(endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT, production = import.meta.env.PROD): AnalyticsConfig {
@@ -23,7 +32,7 @@ export function validateAnalyticsConfig(endpoint = import.meta.env.VITE_ANALYTIC
 }
 
 export function sanitizeAnalyticsProperties(name: EventName, properties: Record<string, AnalyticsValue>) {
-  return Object.fromEntries(propertyAllowList[name].filter(key => key in properties).map(key => [key, properties[key]]));
+  return Object.fromEntries(propertyAllowList[name].filter(key => key in properties && (!propertyEnums[name]?.[key] || propertyEnums[name]?.[key]?.includes(properties[key]))).map(key => [key, properties[key]]));
 }
 
 /** Browser events remain useful in the local demo; production requires durable delivery. */

@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, filterLiveAds} from '../src/adapter';
+import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, filterLiveAds, listAllAds} from '../src/adapter';
 import {requiredPublicIndexes, verifySearchIndexes} from '../src/appwriteSetup';
 
 describe('content adapter configuration', () => {
@@ -25,6 +25,15 @@ describe('content adapter configuration', () => {
   });
   it('adds a real placement constraint to public ad queries', () => {
     expect(adQueries('', 2, undefined, new Date('2026-10-16T12:00:00.000Z'), 'community')).toContain('{"method":"contains","attribute":"placements","values":["community"]}');
+  });
+  it('walks every placement page so later eligible ads can rotate', async () => {
+    const calls: Array<{cursor?: string; placement?: string}> = [];
+    const result = await listAllAds({listAds: async (_search, options, placement) => {
+      calls.push({cursor: options?.cursor, placement});
+      return options?.cursor ? {items: [{id: 'later'} as any], nextCursor: undefined, hasMore: false} : {items: [{id: 'first'} as any], nextCursor: 'page-2', hasMore: true};
+    }}, 'home-top');
+    expect(result.map(ad => ad.id)).toEqual(['first', 'later']);
+    expect(calls).toEqual([{placement: 'home-top'}, {cursor: 'page-2', placement: 'home-top'}]);
   });
   it('uses inclusive live bounds and a unique id tie-breaker for stable cursor pages', () => {
     const queries = adQueries('', 2, 'page-1', new Date('2026-10-16T12:00:00.000Z'));

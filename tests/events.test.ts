@@ -33,6 +33,15 @@ describe('analytics ingestion endpoint', () => {
     await handler({method: 'POST', headers: {}, body: {name: 'search_used', at: new Date().toISOString(), properties: {query: 'private'}}}, res);
     expect(res.status).toHaveBeenCalledWith(400);
   });
+  it.each([
+    ['ad_impression', {id: 'ad-1', placement: 'first-page'}],
+    ['ad_contact_clicked', {id: 'ad-1', contact: 'javascript'}],
+    ['admin_action', {action: 'drop_database'}],
+  ])('rejects enum-invalid values for %s', async (name, properties) => {
+    const res = response();
+    await handler({method: 'POST', headers: {}, body: {name, at: new Date().toISOString(), properties}}, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
   it('rejects disallowed origins', async () => {
     vi.stubEnv('APP_ALLOWED_ORIGINS', 'https://news.example');
     const res = response();

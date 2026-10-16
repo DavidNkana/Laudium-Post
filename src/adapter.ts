@@ -4,6 +4,7 @@ import {eligibleAds} from './advertising';
 
 export type PageResult<T> = {items: T[]; nextCursor?: string; hasMore: boolean};
 export type PageOptions = {cursor?: string; limit?: number};
+export const AD_PAGE_LIMIT = 100;
 export interface ContentAdapter {
   listArticles(query?: string, category?: string, options?: PageOptions): Promise<PageResult<Article>>;
   getArticle(id: string): Promise<Article | undefined>;
@@ -90,6 +91,17 @@ export function adQueries(search: string, limit: number, cursor?: string, now = 
   return queries;
 }
 
+/** Exhaust the placement-filtered cursor, rather than rotating only the first page. */
+export async function listAllAds(adapter: Pick<ContentAdapter, 'listAds'>, placement?: AdPlacement, search = ''): Promise<Ad[]> {
+  const all: Ad[] = []; let cursor: string | undefined; let pages = 0;
+  do {
+    const result = await adapter.listAds(search, {cursor, limit: AD_PAGE_LIMIT}, placement);
+    all.push(...result.items); cursor = result.nextCursor; pages += 1;
+    if (!result.hasMore || !cursor || pages >= 20) break;
+  } while (true);
+  return all.filter((ad, index, items) => items.findIndex(item => item.id === ad.id) === index);
+}
+
 function readConfig(): AppwriteConfig {
   const config = {
     endpoint: import.meta.env.VITE_APPWRITE_ENDPOINT,
@@ -112,7 +124,7 @@ export class AppwriteContentAdapter implements ContentAdapter {
     this.databases = new Databases(client);
   }
   async listArticles(search = '', category = '', options: PageOptions = {}) {
-    const limit = Math.min(Math.max(options.limit || 6, 1), 100);
+    const limit = Math.min(Math.max(options.limit || 6, 1), AD_PAGE_LIMIT);
     const result = await this.databases.listDocuments(this.config.databaseId, this.config.articlesCollectionId, articleQueries(search, category, limit, options.cursor));
     return {items: result.documents.map(toArticle), nextCursor: result.documents.at(-1)?.$id, hasMore: result.documents.length === limit};
   }
@@ -123,7 +135,7 @@ export class AppwriteContentAdapter implements ContentAdapter {
     } catch (error) { if ((error as {code?: number}).code === 404) return undefined; throw error; }
   }
   async listAds(search = '', options: PageOptions = {}, placement?: AdPlacement) {
-    const limit = Math.min(Math.max(options.limit || 6, 1), 100);
+    const limit = Math.min(Math.max(options.limit || 6, 1), AD_PAGE_LIMIT);
     const result = await this.databases.listDocuments(this.config.databaseId, this.config.adsCollectionId, adQueries(search, limit, options.cursor, new Date(), placement));
     // Query bounds reduce leakage and work efficiently; this second check is
     // intentional because public projections can be stale or malformed.

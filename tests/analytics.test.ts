@@ -38,6 +38,11 @@ describe('analytics seam', () => {
     expect(EVENT_NAMES).toContain('sidebar_item_selected');
     expect(sanitizeAnalyticsProperties('advertise_whatsapp_launch', {outcome: 'success', message: 'private'})).toEqual({outcome: 'success'});
   });
+  it('drops enum-invalid values before browser delivery', () => {
+    expect(sanitizeAnalyticsProperties('ad_impression', {id: 'ad-1', placement: 'first-page'})).toEqual({id: 'ad-1'});
+    expect(sanitizeAnalyticsProperties('ad_contact_clicked', {id: 'ad-1', contact: 'javascript'})).toEqual({id: 'ad-1'});
+    expect(sanitizeAnalyticsProperties('admin_action', {action: 'drop_database'})).toEqual({});
+  });
   it('requires 2xx and retries one failed delivery', async () => {
     vi.useFakeTimers();
     const fetcher = vi.fn().mockResolvedValueOnce(new Response(null, {status: 500})).mockResolvedValueOnce(new Response(null, {status: 204}));
