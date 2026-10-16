@@ -1,10 +1,47 @@
 {
-  "database": {"id":"laudium_post","name":"Laudium Post"},
+  "database": {"id": "laudium_post", "name": "Laudium Post"},
   "collections": [
-    {"id":"articles","permissions":["read(\"any\")","create(\"team:editors\")","update(\"team:editors\")","delete(\"team:editors\")"],"attributes":{"title":"string(120)","slug":"string(140)","excerpt":"string(300)","body":"string(30000)","category":"enum[Community,Business,Culture,Sport,Civic]","author":"string(120)","status":"enum[Draft,Published,Scheduled,Archived]","publishedAt":"datetime","featured":"boolean"}},
-    {"id":"ads","permissions":["read(\"any\")","create(\"team:editors\")","update(\"team:editors\")","delete(\"team:editors\")"],"attributes":{"business":"string(120)","title":"string(140)","description":"string(500)","category":"string(80)","location":"string(180)","status":"enum[Pending,Approved,Archived]","featured":"boolean"}},
-    {"id":"corrections","permissions":["create(\"any\")","read(\"team:editors\")","update(\"team:editors\")"],"attributes":{"articleId":"string(80)","message":"string(2000)","email":"email","status":"enum[Open,Resolved]"}}
+    {
+      "id": "public_articles",
+      "purpose": "Read-only projection of published articles; never write drafts here.",
+      "permissions": ["read(\"any\")"],
+      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "string(30000)", "category": "enum[Community,Business,Culture,Sport,Civic]", "author": "string(120)", "status": "enum[Published]", "publishedAt": "datetime", "readTime": "string(30)", "accent": "string(30)", "featured": "boolean"}
+    },
+    {
+      "id": "public_ads",
+      "purpose": "Read-only projection of approved, currently active listings; exclude private advertiser/contact fields.",
+      "permissions": ["read(\"any\")"],
+      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "category": "string(80)", "location": "string(180)", "status": "enum[Approved]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "accent": "string(30)", "featured": "boolean"}
+    },
+    {
+      "id": "public_categories",
+      "purpose": "Read-only category labels used by the public UI.",
+      "permissions": ["read(\"any\")"],
+      "attributes": {"name": "string(80)", "slug": "string(80)", "active": "boolean", "sortOrder": "integer"}
+    },
+    {
+      "id": "editorial_articles",
+      "purpose": "Private source records including drafts, schedules and moderation metadata.",
+      "permissions": ["read(\"team:editors\")", "create(\"team:editors\")", "update(\"team:editors\")", "delete(\"team:editors\")"],
+      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "string(30000)", "category": "string(80)", "author": "string(120)", "status": "enum[Draft,Published,Scheduled,Archived]", "publishedAt": "datetime", "featured": "boolean"}
+    },
+    {
+      "id": "advertiser_records",
+      "purpose": "Private advertiser records and approval workflow; never public-read.",
+      "permissions": ["read(\"team:editors\")", "create(\"team:editors\")", "update(\"team:editors\")", "delete(\"team:editors\")"],
+      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "category": "string(80)", "location": "string(180)", "phone": "string(40)", "email": "email", "status": "enum[Pending,Approved,Archived]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime"}
+    },
+    {
+      "id": "corrections",
+      "permissions": ["create(\"any\")", "read(\"team:editors\")", "update(\"team:editors\")"],
+      "attributes": {"articleId": "string(80)", "message": "string(2000)", "email": "email", "status": "enum[Open,Resolved]"}
+    },
+    {
+      "id": "analytics_events",
+      "permissions": ["create(\"any\")", "read(\"team:editors\")"],
+      "attributes": {"name": "string(80)", "properties": "string(4000)", "occurredAt": "datetime"}
+    }
   ],
-  "teams": [{"id":"editors","roles":["owner","editor","contributor"]}],
-  "note":"Apply via Appwrite Console or CLI after replacing IDs. Never expose API keys in VITE_* variables. Server-side admin actions require a trusted Appwrite function."
+  "teams": [{"id": "editors", "roles": ["owner", "editor", "contributor"]}],
+  "publishing": "A trusted Appwrite Function copies only approved/published records into the public projections. Client SDKs never read the private collections. Never expose API keys in VITE_* variables."
 }
