@@ -22,4 +22,4 @@ Important business events include `advertise_cta_clicked` from the directory CTA
 
 ## Production security
 
-There is no real auth in demo mode. The admin preview is labelled and is not access control. Production requires Appwrite Auth, team membership checks on every write, server-side validation, rate limits, CSP, and monitoring of projection failures. Public collection permissions are not a substitute for the publishing boundary.
+There is no real auth in demo mode. The fake demo workspace requires explicit `VITE_LOCAL_DEMO_MODE=true` and is not access control. Live mode verifies an Appwrite Auth session and membership in `VITE_APPWRITE_STAFF_TEAM_ID`, but deliberately renders no editing UI until server-side editorial functions exist. Those functions must repeat team checks on every write. Analytics is delivered to `/api/events`, which requires server-only Appwrite variables and `APP_ALLOWED_ORIGINS`. Its in-memory rate limit is only a per-instance first layer; use a shared limiter before high-volume launch. Public collection permissions are not a substitute for the publishing boundary.

@@ -14,3 +14,8 @@ export function sequenceFeed(stories: Article[], adInventory: Ad[], pageSize = 6
   });
   return result.slice(0, pageSize);
 }
+
+/** Home owns the lead card, so the stream starts at article index one. */
+export function homeFeed(articles: Article[], adInventory: Ad[], pageSize = Number.POSITIVE_INFINITY): FeedItem[] {
+  return sequenceFeed(articles.slice(1), adInventory, pageSize, 1);
+}

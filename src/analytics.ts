@@ -12,6 +12,7 @@ const propertyAllowList: Record<EventName, string[]> = {
 
 export type AnalyticsConfig = {durable: boolean; error?: string; endpoint?: string};
 export function validateAnalyticsConfig(endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT, production = import.meta.env.PROD): AnalyticsConfig {
+  if (import.meta.env.VITE_LOCAL_DEMO_MODE === 'true') return {durable: false, endpoint};
   if (!production) return {durable: Boolean(endpoint), endpoint, error: undefined};
   if (!endpoint) return {durable: false, error: 'Production analytics requires VITE_ANALYTICS_ENDPOINT (an HTTPS event-ingestion endpoint).'};
   try {
@@ -30,11 +31,23 @@ export function track(name: EventName, properties: Record<string, AnalyticsValue
   const event: AnalyticsEvent = {name, properties: sanitizeAnalyticsProperties(name, properties), at: new Date().toISOString()};
   window.dispatchEvent(new CustomEvent('laudium:analytics', {detail: event}));
   if (config.durable) {
-    void fetch(config.endpoint!, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(event), keepalive: true})
-      .catch(() => console.error('[analytics] durable delivery failed'));
+    return deliver(event, config.endpoint!);
   } else if (config.error) {
     console.error(`[analytics] ${config.error}`);
   } else if (import.meta.env.DEV) {
     console.info('[analytics:local-demo]', event);
   }
+}
+
+export async function deliver(event: AnalyticsEvent, endpoint: string, fetcher: typeof fetch = fetch): Promise<boolean> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetcher(endpoint, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(event), keepalive: true});
+      if (response.ok) return true;
+    } catch { /* retry once; analytics must never block the reader */ }
+    if (attempt === 0) await new Promise(resolve => window.setTimeout(resolve, 100));
+  }
+  window.dispatchEvent(new CustomEvent('laudium:analytics-failed', {detail: event.name}));
+  console.error('[analytics] durable delivery failed after one retry');
+  return false;
 }

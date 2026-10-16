@@ -23,4 +23,10 @@ See `.env.example` and `docs/appwrite-setup.md`. `src/adapter.ts` is the remote-
 
 ## Editorial/admin flows
 
-The reader includes home, sections, search, saved stories, article reading, share, correction prompt, community directory and ad detail. “Admin preview” shows permission-aware demo auth and CRUD-like draft/publish/schedule/archive management. It is not production auth; connect Appwrite Auth/Teams before launch.
+The reader includes home, sections, search, saved stories, article reading, share, correction prompt, community directory and ad detail. The fake staff workspace renders only when `VITE_LOCAL_DEMO_MODE=true` (explicit local demo). Live mode verifies Appwrite Auth/team membership and shows a configuration message instead of rendering fake editing UI until server-side editorial functions exist; the demo workspace is never production security.
+
+## Analytics and security
+
+Vercel serves `/api/events` as the minimal ingestion endpoint. Set `APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`, `APPWRITE_API_KEY`, `APPWRITE_DATABASE_ID`, and `APPWRITE_ANALYTICS_COLLECTION_ID` as server-only variables, plus comma-separated `APP_ALLOWED_ORIGINS`. The endpoint allow-lists event/property names, rejects raw search terms, validates timestamps/types, applies a best-effort per-instance limit of 60 requests/minute/IP, and persists through the Appwrite server SDK. The client requires a 2xx response and retries once; local demo mode is console-only. For multiple Vercel instances, add an edge/shared rate limiter before launch.
+
+`vercel.json` includes a restrictive CSP, `nosniff`, referrer policy, frame denial, and Permissions-Policy. If production adds analytics, media, fonts, or third-party embeds, update `connect-src`, `img-src`, `font-src`, or `frame-src` deliberately and review the policy rather than weakening it globally. `script-src 'unsafe-inline'` is currently required by the Vite/React delivery; migrate to nonce/hash-based scripts if the deployment introduces inline script risk.

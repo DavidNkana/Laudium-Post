@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from 'vitest';
-import {sanitizeAnalyticsProperties, track, validateAnalyticsConfig} from '../src/analytics';
+import {deliver, sanitizeAnalyticsProperties, track, validateAnalyticsConfig} from '../src/analytics';
 
 describe('analytics seam', () => {
   it('keeps local demo analytics observable without pretending it is durable', async () => {
@@ -25,7 +25,21 @@ describe('analytics seam', () => {
     expect(validateAnalyticsConfig(undefined, true).error).toMatch(/requires/);
     expect(validateAnalyticsConfig('http://analytics.example/events', true).error).toMatch(/HTTPS/);
   });
+  it('keeps explicit local demo mode console-only even if an endpoint exists', () => {
+    vi.stubEnv('VITE_LOCAL_DEMO_MODE', 'true');
+    expect(validateAnalyticsConfig('https://analytics.example/events', true).durable).toBe(false);
+    vi.unstubAllEnvs();
+  });
   it('never includes raw search input in analytics properties', () => {
     expect(sanitizeAnalyticsProperties('search_used', {query: 'neighbourhood', queryLength: 13})).toEqual({queryLength: 13});
+  });
+  it('requires 2xx and retries one failed delivery', async () => {
+    vi.useFakeTimers();
+    const fetcher = vi.fn().mockResolvedValueOnce(new Response(null, {status: 500})).mockResolvedValueOnce(new Response(null, {status: 204}));
+    const promise = deliver({name: 'ad_opened', properties: {id: 'ad-1'}, at: new Date().toISOString()}, 'https://analytics.example/events', fetcher);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(await promise).toBe(true);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 });
