@@ -28,6 +28,50 @@ export class DemoContentAdapter implements ContentAdapter {
 }
 
 type AppwriteConfig = {endpoint: string; projectId: string; databaseId: string; articlesCollectionId: string; adsCollectionId: string};
+
+/**
+ * Appwrite's cursor is the last document id, so every public query must use
+ * the same total order. `$id` is the unique tie-breaker for equal timestamps.
+ */
+export const ARTICLE_ORDER = ['publishedAt DESC', '$id DESC'] as const;
+export const AD_ORDER = ['startsAt DESC', '$id DESC'] as const;
+
+export function isLiveAdDocument(document: Record<string, any>, now = new Date()): boolean {
+  const startsAt = typeof document.startsAt === 'string' ? new Date(document.startsAt) : undefined;
+  const endsAt = typeof document.endsAt === 'string' ? new Date(document.endsAt) : undefined;
+  return document.status === 'Approved' && document.active === true && !!startsAt && !!endsAt &&
+    !Number.isNaN(startsAt.getTime()) && !Number.isNaN(endsAt.getTime()) &&
+    startsAt.getTime() <= now.getTime() && now.getTime() <= endsAt.getTime();
+}
+
+export function filterLiveAds(documents: Record<string, any>[], now = new Date()) {
+  return documents.filter(document => isLiveAdDocument(document, now));
+}
+
+export function articleQueries(search: string, category: string, limit: number, cursor?: string) {
+  const queries = [
+    Query.equal('status', 'Published'),
+    Query.lessThanEqual('publishedAt', new Date().toISOString()),
+    Query.orderDesc('publishedAt'), Query.orderDesc('$id'), Query.limit(limit),
+  ];
+  if (cursor) queries.push(Query.cursorAfter(cursor));
+  if (category) queries.push(Query.equal('category', category));
+  if (search) queries.push(Query.or([Query.search('title', search), Query.search('excerpt', search)]));
+  return queries;
+}
+
+export function adQueries(search: string, limit: number, cursor?: string, now = new Date()) {
+  const nowIso = now.toISOString();
+  const queries = [
+    Query.equal('status', 'Approved'), Query.equal('active', true),
+    Query.lessThanEqual('startsAt', nowIso), Query.greaterThanEqual('endsAt', nowIso),
+    Query.orderDesc('startsAt'), Query.orderDesc('$id'), Query.limit(limit),
+  ];
+  if (cursor) queries.push(Query.cursorAfter(cursor));
+  if (search) queries.push(Query.or([Query.search('business', search), Query.search('title', search), Query.search('category', search)]));
+  return queries;
+}
+
 function readConfig(): AppwriteConfig {
   const config = {
     endpoint: import.meta.env.VITE_APPWRITE_ENDPOINT,
@@ -51,11 +95,7 @@ export class AppwriteContentAdapter implements ContentAdapter {
   }
   async listArticles(search = '', category = '', options: PageOptions = {}) {
     const limit = Math.min(Math.max(options.limit || 6, 1), 100);
-    const queries = [Query.equal('status', 'Published'), Query.lessThanEqual('publishedAt', new Date().toISOString()), Query.limit(limit)];
-    if (options.cursor) queries.push(Query.cursorAfter(options.cursor));
-    if (category) queries.push(Query.equal('category', category));
-    if (search) queries.push(Query.or([Query.search('title', search), Query.search('excerpt', search)]));
-    const result = await this.databases.listDocuments(this.config.databaseId, this.config.articlesCollectionId, queries);
+    const result = await this.databases.listDocuments(this.config.databaseId, this.config.articlesCollectionId, articleQueries(search, category, limit, options.cursor));
     return {items: result.documents.map(toArticle), nextCursor: result.documents.at(-1)?.$id, hasMore: result.documents.length === limit};
   }
   async getArticle(id: string) {
@@ -66,15 +106,15 @@ export class AppwriteContentAdapter implements ContentAdapter {
   }
   async listAds(search = '', options: PageOptions = {}) {
     const limit = Math.min(Math.max(options.limit || 6, 1), 100);
-    const queries = [Query.equal('status', 'Approved'), Query.equal('active', true), Query.limit(limit)];
-    if (options.cursor) queries.push(Query.cursorAfter(options.cursor));
-    if (search) queries.push(Query.or([Query.search('business', search), Query.search('title', search), Query.search('category', search)]));
-    const result = await this.databases.listDocuments(this.config.databaseId, this.config.adsCollectionId, queries);
-    return {items: result.documents.map(toAd), nextCursor: result.documents.at(-1)?.$id, hasMore: result.documents.length === limit};
+    const result = await this.databases.listDocuments(this.config.databaseId, this.config.adsCollectionId, adQueries(search, limit, options.cursor));
+    // Query bounds reduce leakage and work efficiently; this second check is
+    // intentional because public projections can be stale or malformed.
+    const items = filterLiveAds(result.documents).map(toAd);
+    return {items, nextCursor: result.documents.at(-1)?.$id, hasMore: result.documents.length === limit};
   }
 }
 
 const toArticle = (d: Record<string, any>): Article => ({id: d.$id, title: d.title, excerpt: d.excerpt, body: Array.isArray(d.body) ? d.body : [d.body], category: d.category, author: d.author, date: new Date(d.publishedAt).toLocaleDateString('en-GB', {day: 'numeric', month: 'long', year: 'numeric'}), readTime: d.readTime || '5 min read', accent: d.accent || 'ink', featured: d.featured, status: d.status});
-const toAd = (d: Record<string, any>): Ad => ({id: d.$id, business: d.business, title: d.title, description: d.description, category: d.category, location: d.location, phone: d.phone, accent: d.accent || 'blue', featured: d.featured});
+const toAd = (d: Record<string, any>): Ad => ({id: d.$id, business: d.business, title: d.title, description: d.description, category: d.category, location: d.location, phone: d.phone, accent: d.accent || 'blue', featured: d.featured, startsAt: d.startsAt, endsAt: d.endsAt});
 
 export const contentAdapter: ContentAdapter = import.meta.env.VITE_CONTENT_MODE === 'appwrite' ? new AppwriteContentAdapter() : new DemoContentAdapter();

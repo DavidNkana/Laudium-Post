@@ -5,13 +5,15 @@
       "id": "public_articles",
       "purpose": "Read-only projection of published articles; never write drafts here.",
       "permissions": ["read(\"any\")"],
-      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "string(30000)", "category": "enum[Community,Business,Culture,Sport,Civic]", "author": "string(120)", "status": "enum[Published]", "publishedAt": "datetime", "readTime": "string(30)", "accent": "string(30)", "featured": "boolean"}
+      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "string(30000)", "category": "enum[Community,Business,Culture,Sport,Civic]", "author": "string(120)", "status": "enum[Published]", "publishedAt": "datetime", "readTime": "string(30)", "accent": "string(30)", "featured": "boolean"},
+      "indexes": [{"key":"articles_status_published","type":"key","attributes":["status","publishedAt"]},{"key":"articles_published_order_id","type":"key","attributes":["publishedAt","$id"]},{"key":"articles_title_search","type":"fulltext","attributes":["title"]},{"key":"articles_excerpt_search","type":"fulltext","attributes":["excerpt"]}]
     },
     {
       "id": "public_ads",
       "purpose": "Read-only projection of approved, currently active listings; exclude private advertiser/contact fields.",
       "permissions": ["read(\"any\")"],
-      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "category": "string(80)", "location": "string(180)", "status": "enum[Approved]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "accent": "string(30)", "featured": "boolean"}
+      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "category": "string(80)", "location": "string(180)", "status": "enum[Approved]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "accent": "string(30)", "featured": "boolean"},
+      "indexes": [{"key":"ads_live_order","type":"key","attributes":["status","active","startsAt","endsAt"]},{"key":"ads_starts_order_id","type":"key","attributes":["startsAt","$id"]},{"key":"ads_business_search","type":"fulltext","attributes":["business"]},{"key":"ads_title_search","type":"fulltext","attributes":["title"]},{"key":"ads_category_search","type":"fulltext","attributes":["category"]}]
     },
     {
       "id": "public_categories",
