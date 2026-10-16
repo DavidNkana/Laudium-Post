@@ -26,6 +26,7 @@ describe('content adapter configuration', () => {
     const adapter = new DemoContentAdapter();
     expect((await adapter.getArticle('field-notes'))?.title).toBe('A field guide to the Sunday game');
     expect((await adapter.getAd('page-turner'))?.business).toBe('Page Turner Books');
+    expect((await adapter.getAd('page-turner'))?.contacts).toEqual({website: 'https://example.com/page-turner'});
   });
   it('excludes missing, malformed, future, and expired ads at the client boundary', () => {
     const now = new Date('2026-10-16T12:00:00.000Z');

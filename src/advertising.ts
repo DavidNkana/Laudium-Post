@@ -24,8 +24,11 @@ export function nextAd(items: Ad[], currentId: string | undefined, _recentIds: s
 type PublicContactField = 'phone' | 'whatsapp' | 'email' | 'website' | 'directionsUrl';
 
 function consented(ad: Ad, field: PublicContactField) {
-  // Appwrite's public projection has no consent flags; source/demo records must.
-  return !ad.contactConsent || ad.contactConsent[`${field}Consent`] === true;
+  // `true` is the legacy all-fields opt-in. Object-shaped consent is
+  // channel-specific; missing and false consent are always deny-by-default.
+  if (ad.contactConsent === true) return true;
+  if (!ad.contactConsent || typeof ad.contactConsent !== 'object') return false;
+  return ad.contactConsent[`${field}Consent`] === true;
 }
 
 function safeHttpsUrl(value: string | undefined): string | undefined {

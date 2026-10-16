@@ -170,7 +170,10 @@ const toAd = (d: Record<string, any>, storage?: Storage, bucketId?: string): Ad 
   const media = d.media && typeof d.media === 'object' ? {...d.media} : undefined;
   if (media && !media.url && media.fileId && storage && bucketId) media.url = storage.getFileView(bucketId, media.fileId).toString();
   if (media && media.posterFileId && storage && bucketId) media.posterUrl = storage.getFileView(bucketId, media.posterFileId).toString();
-  const ad: Ad = {id: d.$id, business: d.business, title: d.title, description: d.description, offer: d.offer, category: d.category, location: d.location, serviceArea: d.serviceArea, contacts: d.contacts, accent: d.accent || 'blue', featured: d.featured, startsAt: d.startsAt, endsAt: d.endsAt, status:d.status, active:d.active, placements:d.placements, priority:d.priority, rotationKey:d.rotationKey, media};
+  // The trusted public_ads projection has already applied source consent and
+  // contains only sanitized public channels. Assert that boundary explicitly
+  // so the strict source/demo consent check does not hide valid projections.
+  const ad: Ad = {id: d.$id, business: d.business, title: d.title, description: d.description, offer: d.offer, category: d.category, location: d.location, serviceArea: d.serviceArea, contacts: d.contacts, contactConsent: true, accent: d.accent || 'blue', featured: d.featured, startsAt: d.startsAt, endsAt: d.endsAt, status:d.status, active:d.active, placements:d.placements, priority:d.priority, rotationKey:d.rotationKey, media};
   return {...ad, contacts: publicAdContacts(ad)};
 };
 
