@@ -37,6 +37,7 @@ describe('analytics seam', () => {
     expect(EVENT_NAMES).toContain('sidebar_open');
     expect(EVENT_NAMES).toContain('sidebar_item_selected');
     expect(sanitizeAnalyticsProperties('advertise_whatsapp_launch', {outcome: 'success', message: 'private'})).toEqual({outcome: 'success'});
+    expect(sanitizeAnalyticsProperties('advertise_cta_clicked', {path: 'header'})).toEqual({path: 'header'});
   });
   it('drops enum-invalid values before browser delivery', () => {
     expect(sanitizeAnalyticsProperties('ad_impression', {id: 'ad-1', placement: 'first-page'})).toEqual({id: 'ad-1'});

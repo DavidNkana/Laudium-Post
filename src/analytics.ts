@@ -15,7 +15,7 @@ const propertyEnums: Partial<Record<EventName, Partial<Record<string, readonly A
   ad_impression: {placement: ['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article']},
   ad_rotated: {placement: ['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article']},
   ad_contact_clicked: {contact: ['Call', 'WhatsApp', 'Email', 'Website', 'Directions']},
-  advertise_cta_clicked: {path: ['sidebar', 'directory']},
+  advertise_cta_clicked: {path: ['header', 'sidebar', 'directory']},
   advertise_whatsapp_launch: {outcome: ['success', 'failure']},
   admin_action: {action: ['New article draft created', 'Opened The city that chooses to stay ready', 'Opened A field guide to the Sunday game', 'Opened Planning a winter on the high street']},
 };
