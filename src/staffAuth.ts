@@ -1,9 +1,14 @@
 import {Account, Client, Teams} from 'appwrite';
+import {contentMode} from './adapter';
 
 export type StaffAccess = {allowed: boolean; message: string};
 
+export function hasStaffMembership(userId: string, memberships: Array<{userId?: string; roles?: string[]}>) {
+  return memberships.some(membership => membership.userId === userId && (membership.roles ?? []).length > 0);
+}
+
 export function isLocalDemoMode() {
-  return import.meta.env.VITE_LOCAL_DEMO_MODE === 'true';
+  return contentMode === 'demo' && import.meta.env.VITE_LOCAL_DEMO_MODE === 'true';
 }
 
 /** Demo access is intentionally opt-in. Live access requires a signed-in Appwrite team member. */
@@ -19,9 +24,10 @@ export async function requestStaffAccess(): Promise<StaffAccess> {
     const client = new Client().setEndpoint(endpoint).setProject(project);
     const account = new Account(client);
     const teams = new Teams(client);
-    await account.get();
+    const user = await account.get();
     const memberships = await teams.listMemberships(teamId, [], '');
-    return memberships.memberships.length > 0
+    const member = hasStaffMembership(user.$id, memberships.memberships);
+    return member
       ? {allowed: true, message: ''}
       : {allowed: false, message: 'Your signed-in account is not a member of the configured editorial team.'};
   } catch {

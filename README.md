@@ -11,7 +11,7 @@ npm test
 npm run build
 ```
 
-The default is an explicitly labelled **LOCAL DEMO MODE** with fictional content and tasteful CSS artwork placeholders. No WhatsApp number is invented: the advertising contact state remains honest until `VITE_PUBLICATION_WHATSAPP_NUMBER` is configured. The number must be the publication's own WhatsApp number (digits only, including country code); the app pre-fills an editable advert enquiry message and never substitutes an advertiser's contact.
+The default is production content mode (`VITE_CONTENT_MODE=appwrite`) and fails closed when public Appwrite configuration or reads are unavailable. Fictional content is available only when `VITE_CONTENT_MODE=demo` and `VITE_LOCAL_DEMO_MODE=true` are explicitly set. No WhatsApp number is invented: the advertising contact state remains honest until `VITE_PUBLICATION_WHATSAPP_NUMBER` is configured.
 
 ## Product and business hypothesis
 

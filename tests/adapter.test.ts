@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, filterLiveAds, listAllAds, listAllPlacementAds} from '../src/adapter';
+import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, contentAdapter, filterLiveAds, listAllAds, listAllPlacementAds} from '../src/adapter';
 import {requiredPublicIndexes, verifySearchIndexes} from '../src/appwriteSetup';
 
 describe('content adapter configuration', () => {
@@ -11,6 +11,9 @@ describe('content adapter configuration', () => {
     expect(result.items).toHaveLength(1);
     expect(result.hasMore).toBe(true);
     expect(result.items[0].status).toBe('Published');
+  });
+  it('never turns an unconfigured default into demo fixtures', async () => {
+    await expect(contentAdapter.listArticles()).rejects.toThrow(/configuration is missing/);
   });
   it('hydrates records outside the first demo page for deep links', async () => {
     const adapter = new DemoContentAdapter();

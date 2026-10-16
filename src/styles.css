@@ -45,3 +45,4 @@
 .missing-config strong{font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
 .advertise-message{margin-left:264px}
 @media(max-width:700px){.header-action{min-width:44px;padding:0;justify-content:center}.brand-lockup{min-width:0}.advertise-message{margin-left:0;padding:12px 16px;display:block}.missing-config strong{display:block;margin-bottom:4px}}
+ .footer small{display:none}.local-demo .footer small{display:block}

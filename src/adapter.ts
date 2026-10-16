@@ -1,5 +1,5 @@
-import {Client, Databases, Query} from 'appwrite';
-import {articles, ads, Article, Ad, AdContacts, AdPlacement} from './data';
+import {Client, Databases, Query, Storage} from 'appwrite';
+import {articles, ads, Article, Ad, AdContacts, AdPlacement, Category} from './data';
 import {eligibleAds} from './advertising';
 
 export type PageResult<T> = {items: T[]; nextCursor?: string; hasMore: boolean};
@@ -10,6 +10,7 @@ export interface ContentAdapter {
   getArticle(id: string): Promise<Article | undefined>;
   listAds(query?: string, options?: PageOptions, placement?: AdPlacement): Promise<PageResult<Ad>>;
   getAd(id: string): Promise<Ad | undefined>;
+  listCategories(): Promise<Category[]>;
 }
 
 const page = <T>(items: T[], cursor = '', limit = 6): PageResult<T> => {
@@ -29,9 +30,10 @@ export class DemoContentAdapter implements ContentAdapter {
     return page(filtered, options.cursor, options.limit);
   }
   async getAd(id: string) { const ad = ads.find(a => a.id === id); return ad && isPublicAdEligible(ad) ? toPublicAd(ad) : undefined; }
+  async listCategories() { return [...new Set(articles.map(article => article.category))]; }
 }
 
-type AppwriteConfig = {endpoint: string; projectId: string; databaseId: string; articlesCollectionId: string; adsCollectionId: string};
+export type AppwriteConfig = {endpoint: string; projectId: string; databaseId: string; articlesCollectionId: string; adsCollectionId: string; categoriesCollectionId: string; mediaBucketId?: string};
 
 /**
  * Appwrite's cursor is the last document id, so every public query must use
@@ -117,6 +119,8 @@ function readConfig(): AppwriteConfig {
     databaseId: import.meta.env.VITE_APPWRITE_DATABASE_ID,
     articlesCollectionId: import.meta.env.VITE_APPWRITE_ARTICLES_COLLECTION_ID,
     adsCollectionId: import.meta.env.VITE_APPWRITE_ADS_COLLECTION_ID,
+    categoriesCollectionId: import.meta.env.VITE_APPWRITE_CATEGORIES_COLLECTION_ID,
+    mediaBucketId: import.meta.env.VITE_APPWRITE_MEDIA_BUCKET_ID,
   };
   const missing = Object.entries(config).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length) throw new Error(`Appwrite content mode is enabled but configuration is missing: ${missing.join(', ')}. Set public collection IDs; never put an API key in VITE_* variables.`);
@@ -125,11 +129,13 @@ function readConfig(): AppwriteConfig {
 
 export class AppwriteContentAdapter implements ContentAdapter {
   private readonly databases: Databases;
+  private readonly storage: Storage;
   private readonly config: AppwriteConfig;
   constructor() {
     this.config = readConfig();
     const client = new Client().setEndpoint(this.config.endpoint).setProject(this.config.projectId);
     this.databases = new Databases(client);
+    this.storage = new Storage(client);
   }
   async listArticles(search = '', category = '', options: PageOptions = {}) {
     const limit = Math.min(Math.max(options.limit || 6, 1), AD_PAGE_LIMIT);
@@ -147,18 +153,44 @@ export class AppwriteContentAdapter implements ContentAdapter {
     const result = await this.databases.listDocuments(this.config.databaseId, this.config.adsCollectionId, adQueries(search, limit, options.cursor, new Date(), placement));
     // Query bounds reduce leakage and work efficiently; this second check is
     // intentional because public projections can be stale or malformed.
-    const items = filterLiveAds(result.documents).filter(document => !placement || Array.isArray(document.placements) && document.placements.includes(placement)).map(toAd);
+    const items = filterLiveAds(result.documents).filter(document => !placement || Array.isArray(document.placements) && document.placements.includes(placement)).map(document => toAd(document, this.storage, this.config.mediaBucketId));
     return {items, nextCursor: result.documents.at(-1)?.$id, hasMore: result.documents.length === limit};
   }
   async getAd(id: string) {
     try {
       const document = await this.databases.getDocument(this.config.databaseId, this.config.adsCollectionId, id);
-      return isLiveAdDocument(document) ? toAd(document) : undefined;
+      return isLiveAdDocument(document) ? toAd(document, this.storage, this.config.mediaBucketId) : undefined;
     } catch (error) { if ((error as {code?: number}).code === 404) return undefined; throw error; }
+  }
+  async listCategories() {
+    const result = await this.databases.listDocuments(this.config.databaseId, this.config.categoriesCollectionId, [Query.equal('active', true), Query.orderAsc('sortOrder'), Query.limit(100)]);
+    return result.documents.map(document => document.name as Category).filter(Boolean);
   }
 }
 
 const toArticle = (d: Record<string, any>): Article => ({id: d.$id, title: d.title, excerpt: d.excerpt, body: Array.isArray(d.body) ? d.body : [d.body], category: d.category, author: d.author, date: new Date(d.publishedAt).toLocaleDateString('en-GB', {day: 'numeric', month: 'long', year: 'numeric'}), readTime: d.readTime || '5 min read', accent: d.accent || 'ink', featured: d.featured, status: d.status});
-const toAd = (d: Record<string, any>): Ad => ({id: d.$id, business: d.business, title: d.title, description: d.description, offer: d.offer, category: d.category, location: d.location, serviceArea: d.serviceArea, contacts: d.contacts, accent: d.accent || 'blue', featured: d.featured, startsAt: d.startsAt, endsAt: d.endsAt, status:d.status, active:d.active, placements:d.placements, priority:d.priority, rotationKey:d.rotationKey, media:d.media});
+const toAd = (d: Record<string, any>, storage?: Storage, bucketId?: string): Ad => {
+  const media = d.media && typeof d.media === 'object' ? {...d.media} : undefined;
+  if (media && !media.url && media.fileId && storage && bucketId) media.url = storage.getFileView(bucketId, media.fileId).toString();
+  if (media && media.posterFileId && storage && bucketId) media.posterUrl = storage.getFileView(bucketId, media.posterFileId).toString();
+  return {id: d.$id, business: d.business, title: d.title, description: d.description, offer: d.offer, category: d.category, location: d.location, serviceArea: d.serviceArea, contacts: d.contacts, accent: d.accent || 'blue', featured: d.featured, startsAt: d.startsAt, endsAt: d.endsAt, status:d.status, active:d.active, placements:d.placements, priority:d.priority, rotationKey:d.rotationKey, media};
+};
 
-export const contentAdapter: ContentAdapter = import.meta.env.VITE_CONTENT_MODE === 'appwrite' ? new AppwriteContentAdapter() : new DemoContentAdapter();
+class UnavailableContentAdapter implements ContentAdapter {
+  constructor(private readonly reason: Error) {}
+  private fail<T>(): Promise<T> { return Promise.reject(this.reason); }
+  listArticles() { return this.fail<PageResult<Article>>(); }
+  getArticle() { return this.fail<Article | undefined>(); }
+  listAds() { return this.fail<PageResult<Ad>>(); }
+  getAd() { return this.fail<Ad | undefined>(); }
+  listCategories() { return this.fail<Category[]>(); }
+}
+
+export const contentMode = import.meta.env.VITE_CONTENT_MODE === 'demo' ? 'demo' : 'appwrite';
+export function createContentAdapter(): ContentAdapter {
+  if (contentMode === 'demo') return new DemoContentAdapter();
+  try { return new AppwriteContentAdapter(); }
+  catch (error) { return new UnavailableContentAdapter(error instanceof Error ? error : new Error('Appwrite public content is not configured.')); }
+}
+// Production is the safe default. This object never falls back to fictional fixtures.
+export const contentAdapter: ContentAdapter = createContentAdapter();

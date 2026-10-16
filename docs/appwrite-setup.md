@@ -1,6 +1,8 @@
 # Appwrite setup
 
-The default is explicit `VITE_CONTENT_MODE=demo`: stories and businesses are fictional and are never presented as live inventory. To use production content:
+The default is `VITE_CONTENT_MODE=appwrite`: the reader fails closed rather than showing fictional content when setup is incomplete. Fictional stories/businesses load only when both `VITE_CONTENT_MODE=demo` and `VITE_LOCAL_DEMO_MODE=true` are explicitly set.
+
+To use production content:
 
 1. Create the database and collections in `docs/appwrite-schema.json`. Set `VITE_CONTENT_MODE=appwrite`, the endpoint, project, database, and **public** collection IDs in `.env.local`.
 2. Provision every attribute and index in `docs/appwrite-schema.json` before launch. In particular, `Query.search` needs the five named full-text indexes (`articles_title_search`, `articles_excerpt_search`, `ads_business_search`, `ads_title_search`, `ads_category_search`); the app does not silently fall back to an unindexed scan. Grant `read("any")` only to `public_articles`, `public_ads`, and `public_categories`. The public ads projection contains no phone/email/private advertiser fields. The adapter additionally filters articles to `status=Published` and `publishedAt <= now`, and ads to `status=Approved`, `active=true`, `startsAt <= now <= endsAt`, with valid dates required client-side.
@@ -8,7 +10,32 @@ The default is explicit `VITE_CONTENT_MODE=demo`: stories and businesses are fic
 4. Create an editor team and restrict all private collection writes to that team. Enforce auth and role checks in the publishing function. Do not put an Appwrite API key or other admin secret in a `VITE_*` variable.
 5. Add a Storage bucket for media with image transformations and size/MIME limits. Serve only published media publicly. Production corrections and advertiser submissions should go through rate-limited server functions.
 
-If appwrite mode is selected with missing public configuration, the app throws a clear configuration error; it never falls back to demo fixtures. Demo mode remains the safe local default.
+If Appwrite mode has missing public configuration or a read fails, the reader shows an actionable unavailable state; it never falls back to demo fixtures. WhatsApp is optional and does not block reader startup.
+
+## Environment ownership
+
+| Variable | Client/public? | Purpose |
+|---|---|---|
+| `VITE_CONTENT_MODE` | public | `appwrite` (default) or explicit `demo` |
+| `VITE_APPWRITE_ENDPOINT`, `VITE_APPWRITE_PROJECT_ID` | public | Appwrite public SDK target |
+| `VITE_APPWRITE_DATABASE_ID`, `VITE_APPWRITE_*_COLLECTION_ID`, `VITE_APPWRITE_MEDIA_BUCKET_ID` | public | Read-only public projection IDs |
+| `VITE_APPWRITE_STAFF_TEAM_ID` | public | Team identifier only; auth still gates access |
+| `VITE_ANALYTICS_ENDPOINT`, `VITE_PUBLICATION_WHATSAPP_NUMBER` | public | Optional reader integrations (analytics is required for durable live measurement) |
+| `APPWRITE_API_KEY`, `APPWRITE_DATABASE_ID`, `APPWRITE_ANALYTICS_COLLECTION_ID`, `APP_ALLOWED_ORIGINS` | server-only | Vercel analytics ingestion; never use `VITE_` |
+
+## First admin and deployment
+
+Create the Appwrite team from the console, add the first admin/editor membership, then set its team ID as `VITE_APPWRITE_STAFF_TEAM_ID`. Sign in through Appwrite Auth before opening Staff workspace. Publishing writes must be implemented in a trusted Function and repeat the team/role check; the browser has no admin API key and this UI does not pretend to edit live data.
+
+In Vercel, set the public `VITE_*` values for Production (and Preview deliberately), set the server-only analytics values in the Function environment, and deploy with `npm run build`. Do not invent IDs or secrets. Configure the analytics Function/API route and its allowed origins before launch.
+
+## Scheduled publishing
+
+Schedule a trusted Appwrite Function to refresh `public_articles` and `public_ads` projections after editorial changes and at least around ad start/end boundaries. The exact schedule is an operator decision; no schedule or project ID is invented here.
+
+## Capacitor
+
+`webDir` is `dist`; run `npm run build`, then install platform packages and run `npx cap add ios` and/or `npx cap add android`, followed by `npx cap sync` and `npx cap open ios`/`npx cap open android`. Native directories are intentionally not committed from this environment. Use HTTPS Appwrite endpoints and configure universal/app links in the native projects when distribution URLs are known.
 
 ## Ordering and cursors
 
