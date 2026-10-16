@@ -10,3 +10,7 @@ export function resolveDeepLink(location: DeepLinkLocation): DeepLink | undefine
   const match = hashMatch ?? pathMatch;
   return match ? {kind: match[1] as DeepLink['kind'], id: match[2]} : undefined;
 }
+
+export function detailFallbackPath(kind: DeepLink['kind'], search = ''): string {
+  return `${kind === 'ad' ? '/ads' : '/'}${search}`;
+}

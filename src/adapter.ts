@@ -7,6 +7,7 @@ export interface ContentAdapter {
   listArticles(query?: string, category?: string, options?: PageOptions): Promise<PageResult<Article>>;
   getArticle(id: string): Promise<Article | undefined>;
   listAds(query?: string, options?: PageOptions): Promise<PageResult<Ad>>;
+  getAd(id: string): Promise<Ad | undefined>;
 }
 
 const page = <T>(items: T[], cursor = '', limit = 6): PageResult<T> => {
@@ -25,6 +26,7 @@ export class DemoContentAdapter implements ContentAdapter {
     const filtered = ads.filter(a => !query || `${a.business} ${a.title} ${a.category}`.toLowerCase().includes(query.toLowerCase()));
     return page(filtered, options.cursor, options.limit);
   }
+  async getAd(id: string) { return ads.find(a => a.id === id); }
 }
 
 type AppwriteConfig = {endpoint: string; projectId: string; databaseId: string; articlesCollectionId: string; adsCollectionId: string};
@@ -102,7 +104,7 @@ export class AppwriteContentAdapter implements ContentAdapter {
     try {
       const document = await this.databases.getDocument(this.config.databaseId, this.config.articlesCollectionId, id);
       return document.status === 'Published' && new Date(document.publishedAt) <= new Date() ? toArticle(document) : undefined;
-    } catch { return undefined; }
+    } catch (error) { if ((error as {code?: number}).code === 404) return undefined; throw error; }
   }
   async listAds(search = '', options: PageOptions = {}) {
     const limit = Math.min(Math.max(options.limit || 6, 1), 100);
@@ -111,6 +113,12 @@ export class AppwriteContentAdapter implements ContentAdapter {
     // intentional because public projections can be stale or malformed.
     const items = filterLiveAds(result.documents).map(toAd);
     return {items, nextCursor: result.documents.at(-1)?.$id, hasMore: result.documents.length === limit};
+  }
+  async getAd(id: string) {
+    try {
+      const document = await this.databases.getDocument(this.config.databaseId, this.config.adsCollectionId, id);
+      return isLiveAdDocument(document) ? toAd(document) : undefined;
+    } catch (error) { if ((error as {code?: number}).code === 404) return undefined; throw error; }
   }
 }
 

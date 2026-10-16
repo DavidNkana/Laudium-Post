@@ -12,6 +12,11 @@ describe('content adapter configuration', () => {
     expect(result.hasMore).toBe(true);
     expect(result.items[0].status).toBe('Published');
   });
+  it('hydrates records outside the first demo page for deep links', async () => {
+    const adapter = new DemoContentAdapter();
+    expect((await adapter.getArticle('field-notes'))?.title).toBe('A field guide to the Sunday game');
+    expect((await adapter.getAd('page-turner'))?.business).toBe('Page Turner Books');
+  });
   it('excludes missing, malformed, future, and expired ads at the client boundary', () => {
     const now = new Date('2026-10-16T12:00:00.000Z');
     const base = {status: 'Approved', active: true};
