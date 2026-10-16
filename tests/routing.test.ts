@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {detailFallbackPath,resolveDeepLink} from '../src/routing';
+import {decodeDeepLinkId} from '../src/App';
 
 describe('deep-link resolution', () => {
   it('resolves direct article pathname URLs', () => {
@@ -13,6 +14,11 @@ describe('deep-link resolution', () => {
   it('keeps legacy hash links compatible and gives them precedence', () => {
     expect(resolveDeepLink({pathname: '/article/ignored', hash: '#ad-bloom'})).toEqual({kind: 'ad', id: 'bloom'});
     expect(resolveDeepLink({pathname: '/article/ignored', hash: '#article-city-ready'})).toEqual({kind: 'article', id: 'city-ready'});
+  });
+
+  it('treats malformed encoded IDs as invalid instead of throwing', () => {
+    expect(decodeDeepLinkId({kind: 'article', id: '%' })).toBeUndefined();
+    expect(decodeDeepLinkId({kind: 'ad', id: 'local%20listing'})).toBe('local listing');
   });
 
   it('cleans direct detail URLs to their owning listing', () => {
