@@ -12,7 +12,7 @@
       "id": "public_ads",
       "purpose": "Read-only projection of approved, currently active listings; exclude private advertiser/contact fields.",
       "permissions": ["read(\"any\")"],
-      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "category": "string(80)", "location": "string(180)", "status": "enum[Approved]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "accent": "string(30)", "featured": "boolean"},
+      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "offer": "string(500)", "category": "string(80)", "location": "string(180)", "serviceArea": "string(180)", "status": "enum[Approved]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "accent": "string(30)", "featured": "boolean", "media": "json", "placements": "string[]", "priority": "integer", "rotationKey": "string(120)"},
       "indexes": [{"key":"ads_live_order","type":"key","attributes":["status","active","startsAt","endsAt"]},{"key":"ads_starts_order_id","type":"key","attributes":["startsAt","$id"]},{"key":"ads_business_search","type":"fulltext","attributes":["business"]},{"key":"ads_title_search","type":"fulltext","attributes":["title"]},{"key":"ads_category_search","type":"fulltext","attributes":["category"]}]
     },
     {
@@ -31,7 +31,7 @@
       "id": "advertiser_records",
       "purpose": "Private advertiser records and approval workflow; never public-read.",
       "permissions": ["read(\"team:editors\")", "create(\"team:editors\")", "update(\"team:editors\")", "delete(\"team:editors\")"],
-      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "category": "string(80)", "location": "string(180)", "phone": "string(40)", "email": "email", "status": "enum[Pending,Approved,Archived]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime"}
+      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "offer": "string(500)", "category": "string(80)", "location": "string(180)", "serviceArea": "string(180)", "phone": "string(40)", "whatsapp": "string(40)", "email": "email", "website": "url", "directionsUrl": "url", "status": "enum[Pending,Approved,Archived]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "media": "json", "placements": "string[]", "priority": "integer", "rotationKey": "string(120)"}
     },
     {
       "id": "corrections",

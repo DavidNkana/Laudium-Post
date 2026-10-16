@@ -22,4 +22,6 @@ Important business events include `advertise_cta_clicked` from the directory CTA
 
 ## Production security
 
+Public ad projections may include only approved, active, in-date inventory. Media records carry width/height and the reader contains posters with `object-fit: contain` (no crop). `placements`, `priority`, and `rotationKey` drive independent rotation; advertiser phone, WhatsApp, email, website, and directions fields are copied only when consented for public display. Private advertiser records remain team-only.
+
 There is no real auth in demo mode. The fake demo workspace requires explicit `VITE_LOCAL_DEMO_MODE=true` and is not access control. Live mode verifies an Appwrite Auth session and membership in `VITE_APPWRITE_STAFF_TEAM_ID`, but deliberately renders no editing UI until server-side editorial functions exist. Those functions must repeat team checks on every write. Analytics is delivered to `/api/events`, which requires server-only Appwrite variables and `APP_ALLOWED_ORIGINS`. Its in-memory rate limit is only a per-instance first layer; use a shared limiter before high-volume launch. Public collection permissions are not a substitute for the publishing boundary.

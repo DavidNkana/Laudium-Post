@@ -1,11 +1,11 @@
-export const EVENT_NAMES = ['article_opened', 'article_saved', 'article_shared', 'ad_opened', 'advertise_cta_clicked', 'advertise_whatsapp_launch', 'sidebar_open', 'sidebar_item_selected', 'search_used', 'admin_action'] as const;
+export const EVENT_NAMES = ['article_opened', 'article_saved', 'article_shared', 'ad_opened', 'ad_impression', 'ad_rotated', 'ad_contact_clicked', 'ad_reported', 'advertise_cta_clicked', 'advertise_whatsapp_launch', 'sidebar_open', 'sidebar_item_selected', 'search_used', 'admin_action'] as const;
 export type EventName = typeof EVENT_NAMES[number];
 export type AnalyticsValue = string | number | boolean;
 export type AnalyticsEvent = {name: EventName; properties: Record<string, AnalyticsValue>; at: string};
 
 const propertyAllowList: Record<EventName, string[]> = {
   article_opened: ['id', 'category'], article_saved: ['id', 'saved'], article_shared: ['id'],
-  ad_opened: ['id'], advertise_cta_clicked: ['path', 'listing'], advertise_whatsapp_launch: ['outcome'],
+  ad_opened: ['id'], ad_impression: ['id','placement'], ad_rotated: ['id','placement'], ad_contact_clicked: ['id','contact'], ad_reported: ['id'], advertise_cta_clicked: ['path', 'listing'], advertise_whatsapp_launch: ['outcome'],
   sidebar_open: [], sidebar_item_selected: ['item'],
   // Search terms are deliberately not an allowed property.
   search_used: ['queryLength'], admin_action: ['action'],
