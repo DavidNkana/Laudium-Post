@@ -14,3 +14,14 @@
 .ad-disclosure strong{font:700 12px var(--mono);letter-spacing:.08em;white-space:nowrap}
 .ad-disclosure span{font-size:14px;line-height:1.45}
 @media(max-width:700px){.ad-disclosure{display:block}.ad-disclosure span{display:block;margin-top:7px}.lead .save-btn{bottom:0}}
+
+/* Keep mixed editorial and paid cards in the same grid row without overlap. */
+.feed-grid .ad-card,.listing .ad-card{margin-top:0}
+
+/* Card columns must be allowed to shrink so metadata wraps instead of colliding. */
+.lead-copy,.article-card>div:last-child,.ad-card>div:last-child{min-width:0}
+.lead-link{position:static}
+.article-card .eyebrow,.ad-card .eyebrow{line-height:1.35;overflow-wrap:break-word}
+.article-card h3,.ad-card h3{line-height:1.15}
+.article-card p:not(.eyebrow),.ad-card p:not(.eyebrow){line-height:1.5}
+.card-meta{display:block;line-height:1.4;overflow-wrap:break-word}
