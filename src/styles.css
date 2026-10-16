@@ -4,3 +4,13 @@
 .app{padding-bottom:110px}
 .byline{flex-wrap:wrap}
 .save-btn{min-width:44px;min-height:44px}
+.article-card,.ad-card{position:relative}
+.card-link{position:absolute;inset:0;z-index:1;min-height:44px;border-radius:2px}
+.card-link:focus-visible{outline:3px solid var(--burgundy);outline-offset:4px}
+.lead{position:relative}
+.lead-link{display:block;color:inherit;text-decoration:none}
+.lead .save-btn{position:absolute;right:0;bottom:0;z-index:2}
+.ad-disclosure{display:flex;align-items:flex-start;gap:14px;margin:0 0 28px;padding:16px 18px;border:2px solid var(--burgundy);background:#f5e1dc;color:var(--burgundy)}
+.ad-disclosure strong{font:700 12px var(--mono);letter-spacing:.08em;white-space:nowrap}
+.ad-disclosure span{font-size:14px;line-height:1.45}
+@media(max-width:700px){.ad-disclosure{display:block}.ad-disclosure span{display:block;margin-top:7px}.lead .save-btn{bottom:0}}
