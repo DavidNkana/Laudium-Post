@@ -16,7 +16,8 @@ If Appwrite mode has missing public configuration or a read fails, the reader sh
 
 | Variable | Client/public? | Purpose |
 |---|---|---|
-| `VITE_CONTENT_MODE` | public | `appwrite` (default) or explicit `demo` |
+| `VITE_CONTENT_MODE` | public | `appwrite` (default) or `demo`; demo is active only with the local flag below |
+| `VITE_LOCAL_DEMO_MODE` | public | Must be exactly `true` together with `VITE_CONTENT_MODE=demo`; otherwise Appwrite/live mode is used |
 | `VITE_APPWRITE_ENDPOINT`, `VITE_APPWRITE_PROJECT_ID` | public | Appwrite public SDK target |
 | `VITE_APPWRITE_DATABASE_ID`, `VITE_APPWRITE_*_COLLECTION_ID`, `VITE_APPWRITE_MEDIA_BUCKET_ID` | public | Read-only public projection IDs |
 | `VITE_APPWRITE_STAFF_TEAM_ID` | public | Team identifier only; auth still gates access |
@@ -51,4 +52,4 @@ Important business events include `advertise_cta_clicked` from the directory CTA
 
 Public ad projections may include only approved, active, in-date inventory. Media records carry width/height and the reader contains posters with `object-fit: contain` (no crop). `placements`, `priority`, and `rotationKey` drive independent rotation; advertiser phone, WhatsApp, email, website, and directions fields are copied only when consented for public display. Private advertiser records remain team-only.
 
-There is no real auth in demo mode. The fake demo workspace requires explicit `VITE_LOCAL_DEMO_MODE=true` and is not access control. Live mode verifies an Appwrite Auth session and membership in `VITE_APPWRITE_STAFF_TEAM_ID`, but deliberately renders no editing UI until server-side editorial functions exist. Those functions must repeat team checks on every write. Analytics is delivered to `/api/events`, which requires server-only Appwrite variables and `APP_ALLOWED_ORIGINS`. Its in-memory rate limit is only a per-instance first layer; use a shared limiter before high-volume launch. Public collection permissions are not a substitute for the publishing boundary.
+There is no real auth in demo mode. The fake demo workspace requires **both** `VITE_CONTENT_MODE=demo` and `VITE_LOCAL_DEMO_MODE=true`; a missing or false flag resolves to Appwrite/live mode and is not access control. Live mode verifies an Appwrite Auth session and membership in `VITE_APPWRITE_STAFF_TEAM_ID`, but deliberately renders no editing UI until server-side editorial functions exist. Those functions must repeat team checks on every write. Analytics is delivered to `/api/events`, which requires server-only Appwrite variables and `APP_ALLOWED_ORIGINS`. Its in-memory rate limit is only a per-instance first layer; use a shared limiter before high-volume launch. Public collection permissions are not a substitute for the publishing boundary.

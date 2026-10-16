@@ -39,9 +39,9 @@ describe('analytics seam', () => {
     expect(consoleMock).toHaveBeenCalledWith(`[analytics] ${error}`);
     consoleMock.mockRestore();
   });
-  it('keeps explicit local demo mode console-only even if an endpoint exists', () => {
+  it('does not let a lone local flag bypass live analytics configuration', () => {
     vi.stubEnv('VITE_LOCAL_DEMO_MODE', 'true');
-    expect(validateAnalyticsConfig('https://analytics.example/events', true).durable).toBe(false);
+    expect(validateAnalyticsConfig(undefined, true).error).toMatch(/requires VITE_ANALYTICS_ENDPOINT/);
     vi.unstubAllEnvs();
   });
   it('never includes raw search input in analytics properties', () => {

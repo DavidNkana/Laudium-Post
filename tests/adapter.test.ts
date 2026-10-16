@@ -1,8 +1,15 @@
 import {describe, expect, it} from 'vitest';
-import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, contentAdapter, filterLiveAds, listAllAds, listAllPlacementAds} from '../src/adapter';
+import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, contentAdapter, filterLiveAds, listAllAds, listAllPlacementAds, resolveContentMode} from '../src/adapter';
 import {requiredPublicIndexes, verifySearchIndexes} from '../src/appwriteSetup';
 
 describe('content adapter configuration', () => {
+  it('requires both explicit demo flags and otherwise resolves to live Appwrite mode', () => {
+    expect(resolveContentMode('demo', 'true')).toBe('demo');
+    expect(resolveContentMode('demo', undefined)).toBe('appwrite');
+    expect(resolveContentMode('demo', 'false')).toBe('appwrite');
+    expect(resolveContentMode(undefined, 'true')).toBe('appwrite');
+    expect(resolveContentMode('appwrite', 'true')).toBe('appwrite');
+  });
   it('fails loudly instead of returning demo fixtures when Appwrite is unconfigured', () => {
     expect(() => new AppwriteContentAdapter()).toThrow(/configuration is missing/);
   });

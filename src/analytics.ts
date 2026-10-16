@@ -27,7 +27,7 @@ const warnedConfigErrors = new Set<string>();
 // Use the reader's resolved mode: omitted VITE_CONTENT_MODE is Appwrite/live.
 export function validateAnalyticsConfig(endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT, production = contentMode === 'appwrite'): AnalyticsConfig {
   // Demo content is console-observable even in a production-optimized preview.
-  if (import.meta.env.VITE_LOCAL_DEMO_MODE === 'true' || (!production && contentMode !== 'appwrite')) return {durable: false, endpoint};
+  if (contentMode === 'demo') return {durable: false, endpoint};
   if (!production) return {durable: Boolean(endpoint), endpoint, error: undefined};
   if (!endpoint) return {durable: false, error: 'Production analytics requires VITE_ANALYTICS_ENDPOINT (an HTTPS event-ingestion endpoint).'};
   try {

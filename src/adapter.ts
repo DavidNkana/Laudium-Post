@@ -184,7 +184,14 @@ class UnavailableContentAdapter implements ContentAdapter {
   listCategories() { return this.fail<Category[]>(); }
 }
 
-export const contentMode = import.meta.env.VITE_CONTENT_MODE === 'demo' ? 'demo' : 'appwrite';
+export type ContentMode = 'demo' | 'appwrite';
+
+/** Demo is enabled only by the deliberate combination of both local opt-ins. */
+export function resolveContentMode(contentModeEnv?: string, localDemoEnv?: string): ContentMode {
+  return contentModeEnv === 'demo' && localDemoEnv === 'true' ? 'demo' : 'appwrite';
+}
+
+export const contentMode = resolveContentMode(import.meta.env.VITE_CONTENT_MODE, import.meta.env.VITE_LOCAL_DEMO_MODE);
 export function createContentAdapter(): ContentAdapter {
   if (contentMode === 'demo') return new DemoContentAdapter();
   try { return new AppwriteContentAdapter(); }
