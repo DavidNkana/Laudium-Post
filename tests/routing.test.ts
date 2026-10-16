@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {detailFallbackPath,resolveDeepLink} from '../src/routing';
+import {detailFallbackPath,resolveDeepLink,screenPath} from '../src/routing';
 import {decodeDeepLinkId} from '../src/App';
 
 describe('deep-link resolution', () => {
@@ -24,5 +24,16 @@ describe('deep-link resolution', () => {
   it('cleans direct detail URLs to their owning listing', () => {
     expect(detailFallbackPath('article', '?edition=1')).toBe('/?edition=1');
     expect(detailFallbackPath('ad')).toBe('/ads');
+  });
+
+  it('canonicalizes every sidebar destination without carrying an ad hash', () => {
+    expect(screenPath('home', '?edition=1')).toBe('/');
+    expect(screenPath('sections', '?edition=1')).toBe('/');
+    expect(screenPath('search', '?edition=1')).toBe('/?edition=1');
+    expect(screenPath('saved', '?edition=1')).toBe('/');
+    expect(screenPath('more', '?edition=1')).toBe('/');
+    expect(screenPath('ads', '?edition=1')).toBe('/ads');
+    expect(resolveDeepLink({pathname: screenPath('home'), hash: ''})).toBeUndefined();
+    expect(resolveDeepLink({pathname: screenPath('sections'), hash: ''})).toBeUndefined();
   });
 });

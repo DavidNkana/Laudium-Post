@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from 'vitest';
-import {EVENT_NAMES, deliver, sanitizeAnalyticsProperties, track, validateAnalyticsConfig} from '../src/analytics';
+import {EVENT_NAMES, announceAnalyticsConfig, deliver, sanitizeAnalyticsProperties, track, validateAnalyticsConfig} from '../src/analytics';
 
 describe('analytics seam', () => {
   it('keeps local demo analytics observable without pretending it is durable', async () => {
@@ -24,6 +24,16 @@ describe('analytics seam', () => {
   it('rejects an absent or insecure production endpoint', () => {
     expect(validateAnalyticsConfig(undefined, true).error).toMatch(/requires/);
     expect(validateAnalyticsConfig('http://analytics.example/events', true).error).toMatch(/HTTPS/);
+  });
+  it('announces a live configuration failure only once', () => {
+    const error = 'Production analytics requires VITE_ANALYTICS_ENDPOINT (an HTTPS event-ingestion endpoint).';
+    const consoleMock = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const config = validateAnalyticsConfig(undefined, true);
+    announceAnalyticsConfig(config);
+    announceAnalyticsConfig(config);
+    expect(consoleMock).toHaveBeenCalledOnce();
+    expect(consoleMock).toHaveBeenCalledWith(`[analytics] ${error}`);
+    consoleMock.mockRestore();
   });
   it('keeps explicit local demo mode console-only even if an endpoint exists', () => {
     vi.stubEnv('VITE_LOCAL_DEMO_MODE', 'true');

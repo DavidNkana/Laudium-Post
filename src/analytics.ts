@@ -21,14 +21,25 @@ const propertyEnums: Partial<Record<EventName, Partial<Record<string, readonly A
 };
 
 export type AnalyticsConfig = {durable: boolean; error?: string; endpoint?: string};
-export function validateAnalyticsConfig(endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT, production = import.meta.env.PROD): AnalyticsConfig {
-  if (import.meta.env.VITE_LOCAL_DEMO_MODE === 'true') return {durable: false, endpoint};
+const warnedConfigErrors = new Set<string>();
+const liveContentMode = import.meta.env.VITE_CONTENT_MODE === 'appwrite';
+
+export function validateAnalyticsConfig(endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT, production = liveContentMode): AnalyticsConfig {
+  // Demo content is console-observable even in a production-optimized preview.
+  if (import.meta.env.VITE_LOCAL_DEMO_MODE === 'true' || (!production && !liveContentMode)) return {durable: false, endpoint};
   if (!production) return {durable: Boolean(endpoint), endpoint, error: undefined};
   if (!endpoint) return {durable: false, error: 'Production analytics requires VITE_ANALYTICS_ENDPOINT (an HTTPS event-ingestion endpoint).'};
   try {
     if (new URL(endpoint).protocol !== 'https:') return {durable: false, error: 'Production analytics endpoint must use HTTPS.'};
   } catch { return {durable: false, error: 'Production analytics endpoint must be a valid HTTPS URL.'}; }
   return {durable: true, endpoint, error: undefined};
+}
+
+/** Emit a production configuration warning once; demo mode remains console-observable only. */
+export function announceAnalyticsConfig(config: AnalyticsConfig) {
+  if (!config.error || warnedConfigErrors.has(config.error)) return;
+  warnedConfigErrors.add(config.error);
+  console.error(`[analytics] ${config.error}`);
 }
 
 export function sanitizeAnalyticsProperties(name: EventName, properties: Record<string, AnalyticsValue>) {
@@ -43,7 +54,7 @@ export function track(name: EventName, properties: Record<string, AnalyticsValue
   if (config.durable) {
     return deliver(event, config.endpoint!);
   } else if (config.error) {
-    console.error(`[analytics] ${config.error}`);
+    announceAnalyticsConfig(config);
   } else if (import.meta.env.DEV) {
     console.info('[analytics:local-demo]', event);
   }
