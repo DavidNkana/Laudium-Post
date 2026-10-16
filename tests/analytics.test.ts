@@ -1,5 +1,5 @@
 import {describe, expect, it, vi} from 'vitest';
-import {deliver, sanitizeAnalyticsProperties, track, validateAnalyticsConfig} from '../src/analytics';
+import {EVENT_NAMES, deliver, sanitizeAnalyticsProperties, track, validateAnalyticsConfig} from '../src/analytics';
 
 describe('analytics seam', () => {
   it('keeps local demo analytics observable without pretending it is durable', async () => {
@@ -32,6 +32,11 @@ describe('analytics seam', () => {
   });
   it('never includes raw search input in analytics properties', () => {
     expect(sanitizeAnalyticsProperties('search_used', {query: 'neighbourhood', queryLength: 13})).toEqual({queryLength: 13});
+  });
+  it('includes navigation and WhatsApp outcome events without allowing message contents', () => {
+    expect(EVENT_NAMES).toContain('sidebar_open');
+    expect(EVENT_NAMES).toContain('sidebar_item_selected');
+    expect(sanitizeAnalyticsProperties('advertise_whatsapp_launch', {outcome: 'success', message: 'private'})).toEqual({outcome: 'success'});
   });
   it('requires 2xx and retries one failed delivery', async () => {
     vi.useFakeTimers();
