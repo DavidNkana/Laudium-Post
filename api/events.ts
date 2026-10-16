@@ -1,9 +1,10 @@
 import {Client, Databases, ID} from 'appwrite';
 
-const allowed = new Set(['article_opened', 'article_saved', 'article_shared', 'ad_opened', 'advertise_cta_clicked', 'search_used', 'admin_action']);
+const allowed = new Set(['article_opened', 'article_saved', 'article_shared', 'ad_opened', 'advertise_cta_clicked', 'advertise_whatsapp_launch', 'sidebar_open', 'sidebar_item_selected', 'search_used', 'admin_action']);
 const properties: Record<string, Set<string>> = {
   article_opened: new Set(['id', 'category']), article_saved: new Set(['id', 'saved']), article_shared: new Set(['id']),
-  ad_opened: new Set(['id']), advertise_cta_clicked: new Set(['path', 'listing']), search_used: new Set(['queryLength']), admin_action: new Set(['action']),
+  ad_opened: new Set(['id']), advertise_cta_clicked: new Set(['path', 'listing']), advertise_whatsapp_launch: new Set(['outcome']),
+  sidebar_open: new Set([]), sidebar_item_selected: new Set(['item']), search_used: new Set(['queryLength']), admin_action: new Set(['action']),
 };
 const buckets = new Map<string, {count: number; reset: number}>();
 const json = (res: any, status: number, body: unknown) => { res.status(status).setHeader('Content-Type', 'application/json').end(JSON.stringify(body)); };
