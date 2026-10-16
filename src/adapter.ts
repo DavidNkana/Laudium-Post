@@ -1,6 +1,6 @@
 import {Client, Databases, Query, Storage} from 'appwrite';
-import {articles, ads, Article, Ad, AdContacts, AdPlacement, Category} from './data';
-import {eligibleAds} from './advertising';
+import {articles, ads, Article, Ad, AdPlacement, Category} from './data';
+import {eligibleAds, publicAdContacts} from './advertising';
 
 export type PageResult<T> = {items: T[]; nextCursor?: string; hasMore: boolean};
 export type PageOptions = {cursor?: string; limit?: number};
@@ -56,13 +56,10 @@ export function isPublicAdEligible(ad: Ad, now = new Date()): boolean {
     new Date(ad.startsAt).getTime() <= now.getTime() && now.getTime() <= new Date(ad.endsAt).getTime();
 }
 
-function toPublicContacts(contacts: AdContacts | undefined, consent: Ad['contactConsent']): AdContacts | undefined {
-  if (!contacts) return undefined;
-  const publicContacts = Object.fromEntries(Object.entries(contacts).filter(([key, value]) => value && consent?.[`${key}Consent` as keyof NonNullable<Ad['contactConsent']>] === true));
-  return Object.keys(publicContacts).length ? publicContacts as AdContacts : undefined;
-}
-
-const toPublicAd = (ad: Ad): Ad => ({...ad, contacts: toPublicContacts(ad.contacts, ad.contactConsent)});
+const toPublicAd = (ad: Ad): Ad => {
+  const {contactConsent: _contactConsent, contacts: _contacts, ...publicAd} = ad;
+  return {...publicAd, contacts: publicAdContacts(ad)};
+};
 
 export function filterLiveAds(documents: Record<string, any>[], now = new Date()) {
   return documents.filter(document => isLiveAdDocument(document, now));
@@ -173,7 +170,8 @@ const toAd = (d: Record<string, any>, storage?: Storage, bucketId?: string): Ad 
   const media = d.media && typeof d.media === 'object' ? {...d.media} : undefined;
   if (media && !media.url && media.fileId && storage && bucketId) media.url = storage.getFileView(bucketId, media.fileId).toString();
   if (media && media.posterFileId && storage && bucketId) media.posterUrl = storage.getFileView(bucketId, media.posterFileId).toString();
-  return {id: d.$id, business: d.business, title: d.title, description: d.description, offer: d.offer, category: d.category, location: d.location, serviceArea: d.serviceArea, contacts: d.contacts, accent: d.accent || 'blue', featured: d.featured, startsAt: d.startsAt, endsAt: d.endsAt, status:d.status, active:d.active, placements:d.placements, priority:d.priority, rotationKey:d.rotationKey, media};
+  const ad: Ad = {id: d.$id, business: d.business, title: d.title, description: d.description, offer: d.offer, category: d.category, location: d.location, serviceArea: d.serviceArea, contacts: d.contacts, accent: d.accent || 'blue', featured: d.featured, startsAt: d.startsAt, endsAt: d.endsAt, status:d.status, active:d.active, placements:d.placements, priority:d.priority, rotationKey:d.rotationKey, media};
+  return {...ad, contacts: publicAdContacts(ad)};
 };
 
 class UnavailableContentAdapter implements ContentAdapter {

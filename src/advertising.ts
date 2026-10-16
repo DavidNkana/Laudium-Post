@@ -1,4 +1,4 @@
-import type {Ad, AdPlacement} from './data';
+import type {Ad, AdContacts, AdPlacement} from './data';
 
 /** Deliberately configurable: 15s gives readers time to read a poster without making the slot static. */
 export const AD_ROTATION_INTERVAL_MS = 15_000;
@@ -21,8 +21,11 @@ export function nextAd(items: Ad[], currentId: string | undefined, _recentIds: s
   return items[(currentIndex + 1) % items.length];
 }
 
-export function publicAdContacts(ad: Ad) {
-  return ad.contacts;
+type PublicContactField = 'phone' | 'whatsapp' | 'email' | 'website' | 'directionsUrl';
+
+function consented(ad: Ad, field: PublicContactField) {
+  // Appwrite's public projection has no consent flags; source/demo records must.
+  return !ad.contactConsent || ad.contactConsent[`${field}Consent`] === true;
 }
 
 function safeHttpsUrl(value: string | undefined): string | undefined {
@@ -43,8 +46,27 @@ function safeMailto(value: string | undefined): string | undefined {
   return `mailto:${value}`;
 }
 
+function safeWhatsApp(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const digits = value.replace(/\D/g, '');
+  return /^\d{7,15}$/.test(digits) ? value : undefined;
+}
+
+/** Return only validated, consented business channels from a public ad boundary. */
+export function publicAdContacts(ad: Ad): AdContacts | undefined {
+  const source = ad.contacts;
+  if (!source) return undefined;
+  const contacts: AdContacts = {};
+  if (consented(ad, 'phone') && safeTel(source.phone)) contacts.phone = source.phone;
+  if (consented(ad, 'whatsapp') && safeWhatsApp(source.whatsapp)) contacts.whatsapp = source.whatsapp;
+  if (consented(ad, 'email') && safeMailto(source.email)) contacts.email = source.email;
+  if (consented(ad, 'website') && safeHttpsUrl(source.website)) contacts.website = source.website;
+  if (consented(ad, 'directionsUrl') && safeHttpsUrl(source.directionsUrl)) contacts.directionsUrl = source.directionsUrl;
+  return Object.keys(contacts).length ? contacts : undefined;
+}
+
 export function adContactUrls(ad: Ad): Array<{label:string;href:string}> {
-  const contacts = ad.contacts || {}; const actions:Array<{label:string;href:string}> = [];
+  const contacts = publicAdContacts(ad) || {}; const actions:Array<{label:string;href:string}> = [];
   const phone = safeTel(contacts.phone); if (phone) actions.push({label:'Call',href:phone});
   if (contacts.whatsapp) actions.push({label:'WhatsApp',href:`https://wa.me/${contacts.whatsapp.replace(/\D/g,'')}`});
   const email = safeMailto(contacts.email); if (email) actions.push({label:'Email',href:email});

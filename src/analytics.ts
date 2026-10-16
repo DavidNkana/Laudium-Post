@@ -1,3 +1,5 @@
+import {contentMode} from './adapter';
+
 export const EVENT_NAMES = ['article_opened', 'article_saved', 'article_shared', 'ad_opened', 'ad_impression', 'ad_rotated', 'ad_contact_clicked', 'ad_reported', 'advertise_cta_clicked', 'advertise_whatsapp_launch', 'sidebar_open', 'sidebar_item_selected', 'search_used', 'admin_action'] as const;
 export type EventName = typeof EVENT_NAMES[number];
 export type AnalyticsValue = string | number | boolean;
@@ -22,11 +24,10 @@ const propertyEnums: Partial<Record<EventName, Partial<Record<string, readonly A
 
 export type AnalyticsConfig = {durable: boolean; error?: string; endpoint?: string};
 const warnedConfigErrors = new Set<string>();
-const liveContentMode = import.meta.env.VITE_CONTENT_MODE === 'appwrite';
-
-export function validateAnalyticsConfig(endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT, production = liveContentMode): AnalyticsConfig {
+// Use the reader's resolved mode: omitted VITE_CONTENT_MODE is Appwrite/live.
+export function validateAnalyticsConfig(endpoint = import.meta.env.VITE_ANALYTICS_ENDPOINT, production = contentMode === 'appwrite'): AnalyticsConfig {
   // Demo content is console-observable even in a production-optimized preview.
-  if (import.meta.env.VITE_LOCAL_DEMO_MODE === 'true' || (!production && !liveContentMode)) return {durable: false, endpoint};
+  if (import.meta.env.VITE_LOCAL_DEMO_MODE === 'true' || (!production && contentMode !== 'appwrite')) return {durable: false, endpoint};
   if (!production) return {durable: Boolean(endpoint), endpoint, error: undefined};
   if (!endpoint) return {durable: false, error: 'Production analytics requires VITE_ANALYTICS_ENDPOINT (an HTTPS event-ingestion endpoint).'};
   try {

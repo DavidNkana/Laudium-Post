@@ -8,6 +8,7 @@ describe('analytics ingestion endpoint', () => {
     ['sidebar_open', {}],
     ['sidebar_item_selected', {item: 'Search'}],
     ['advertise_whatsapp_launch', {outcome: 'success'}],
+    ['advertise_cta_clicked', {path: 'header'}],
     ['ad_impression', {id: 'ad-1', placement: 'home-top'}],
     ['ad_rotated', {id: 'ad-2', placement: 'section'}],
     ['ad_contact_clicked', {id: 'ad-1', contact: 'WhatsApp'}],

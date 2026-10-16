@@ -6,7 +6,7 @@ describe('analytics seam', () => {
     const listener = vi.fn();
     window.addEventListener('laudium:analytics', listener);
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response());
-    track('advertise_cta_clicked', {path: 'directory'});
+    track('advertise_cta_clicked', {path: 'directory'}, validateAnalyticsConfig(undefined, false));
     expect(listener).toHaveBeenCalledOnce();
     expect(fetchMock).not.toHaveBeenCalled();
     fetchMock.mockRestore();
@@ -24,6 +24,10 @@ describe('analytics seam', () => {
   it('rejects an absent or insecure production endpoint', () => {
     expect(validateAnalyticsConfig(undefined, true).error).toMatch(/requires/);
     expect(validateAnalyticsConfig('http://analytics.example/events', true).error).toMatch(/HTTPS/);
+  });
+  it('treats omitted content mode as live production', () => {
+    vi.unstubAllEnvs();
+    expect(validateAnalyticsConfig(undefined).error).toMatch(/requires VITE_ANALYTICS_ENDPOINT/);
   });
   it('announces a live configuration failure only once', () => {
     const error = 'Production analytics requires VITE_ANALYTICS_ENDPOINT (an HTTPS event-ingestion endpoint).';

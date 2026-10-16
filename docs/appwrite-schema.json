@@ -12,7 +12,7 @@
       "id": "public_ads",
       "purpose": "Read-only projection of approved, currently active listings; contains only the consented public contact projection, never private advertiser/contact source fields.",
       "permissions": ["read(\"any\")"],
-      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "offer": "string(500)", "category": "string(80)", "location": "string(180)", "serviceArea": "string(180)", "status": "enum[Approved]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "accent": "string(30)", "featured": "boolean", "media": "json", "contacts": "json (consented public projection only)", "placements": "string[]", "priority": "integer", "rotationKey": "string(120)"},
+      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "offer": "string(500)", "category": "string(80)", "location": "string(180)", "serviceArea": "string(180)", "status": "enum[Approved]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "accent": "string(30)", "featured": "boolean", "media": "json", "contacts": "json object (allowlist: phone, whatsapp, email, website, directionsUrl; validated and consented public projection only)", "placements": "string[]", "priority": "integer", "rotationKey": "string(120)"},
       "indexes": [{"key":"ads_live_order","type":"key","attributes":["status","active","startsAt","endsAt"]},{"key":"ads_starts_order_id","type":"key","attributes":["startsAt","$id"]},{"key":"ads_business_search","type":"fulltext","attributes":["business"]},{"key":"ads_title_search","type":"fulltext","attributes":["title"]},{"key":"ads_category_search","type":"fulltext","attributes":["category"]}]
     },
     {
@@ -45,5 +45,5 @@
     }
   ],
   "teams": [{"id": "editors", "roles": ["owner", "editor", "contributor"]}],
-  "publishing": "A trusted Appwrite Function copies only approved, active, date-live ad records into public_ads. It copies each private contact field only when its matching *Consent boolean is true, writes those values into public_ads.contacts, and never copies raw private contact fields or consent flags. Public clients read only the projection; client SDKs never read private collections. Never expose API keys in VITE_* variables."
+  "publishing": "A trusted Appwrite Function copies only approved, active, date-live ad records into public_ads. Before writing the projection it applies the explicit public channel allowlist (phone/call, whatsapp, email, website, directionsUrl), validates tel/WhatsApp/mailto/HTTPS schemes, and copies each field only when its matching *Consent boolean is true. public_ads.contacts contains only that sanitized projection, never raw private contact fields or consent flags. The client applies the same allowlist and scheme validation before returning/rendering; client SDKs never read private collections. Never expose API keys in VITE_* variables."
 }
