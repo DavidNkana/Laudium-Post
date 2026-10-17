@@ -5,14 +5,16 @@
       "id": "public_articles",
       "purpose": "Read-only projection of published articles; never write drafts here.",
       "permissions": ["read(\"any\")"],
-      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "longtext (JSON-serialized string array)", "category": "enum[Community,Business,Culture,Sport,Civic]", "author": "string(120)", "status": "enum[Published]", "publishedAt": "datetime", "readTime": "string(30)", "accent": "string(30)", "featured": "boolean"},
+      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "text(65535)", "category": "enum[Community,Business,Culture,Sport,Civic]", "author": "string(120)", "status": "enum[Published]", "publishedAt": "datetime", "readTime": "string(30)", "accent": "string(30)", "featured": "boolean"},
+      "attributeMetadata": {"required": ["title","slug","excerpt","body","category","author","status","publishedAt","readTime","accent","featured"], "defaults": {"title":null,"slug":null,"excerpt":null,"body":null,"category":null,"author":null,"status":null,"publishedAt":null,"readTime":null,"accent":null,"featured":false}, "compatibleTypes": {"body":["text","longtext"]}},
       "indexes": [{"key":"articles_status_published","type":"key","attributes":["status","publishedAt"]},{"key":"articles_published_order_id","type":"key","attributes":["publishedAt","$id"]},{"key":"articles_title_search","type":"fulltext","attributes":["title"]},{"key":"articles_excerpt_search","type":"fulltext","attributes":["excerpt"]}]
     },
     {
       "id": "public_ads",
       "purpose": "Read-only projection of approved, currently active listings; contains only the consented public contact projection, never private advertiser/contact source fields.",
       "permissions": ["read(\"any\")"],
-      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "offer": "string(500)", "category": "string(80)", "location": "string(180)", "serviceArea": "string(180)", "status": "enum[Approved]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "accent": "string(30)", "featured": "boolean", "media": "json object (JSON-serialized object)", "contacts": "json object (JSON-serialized allowlist: phone, whatsapp, email, website, directionsUrl; validated public projection containing only source-consented channels; never raw source values or consent flags)", "placements": "string[]", "priority": "integer", "rotationKey": "string(120)"},
+      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "offer": "string(500)", "category": "string(80)", "location": "string(180)", "serviceArea": "string(180)", "status": "enum[Approved]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "accent": "string(30)", "featured": "boolean", "media": "text(65535)", "contacts": "text(65535)", "placements": "string[]", "priority": "integer", "rotationKey": "string(120)"},
+      "attributeMetadata": {"required": ["business","title","description","offer","category","location","serviceArea","status","active","startsAt","endsAt","accent","featured","placements","priority","rotationKey"], "optional": ["media","contacts"], "defaults": {"business":null,"title":null,"description":null,"offer":null,"category":null,"location":null,"serviceArea":null,"status":null,"active":false,"startsAt":null,"endsAt":null,"accent":null,"featured":false,"media":null,"contacts":null,"placements":null,"priority":0,"rotationKey":null}, "compatibleTypes": {"media":["text","longtext"],"contacts":["text","longtext"]}},
       "indexes": [{"key":"ads_live_order","type":"key","attributes":["status","active","startsAt","endsAt"]},{"key":"ads_starts_order_id","type":"key","attributes":["startsAt","$id"]},{"key":"ads_business_search","type":"fulltext","attributes":["business"]},{"key":"ads_title_search","type":"fulltext","attributes":["title"]},{"key":"ads_category_search","type":"fulltext","attributes":["category"]}]
     },
     {
@@ -20,28 +22,33 @@
       "purpose": "Read-only category labels used by the public UI.",
       "permissions": ["read(\"any\")"],
       "attributes": {"name": "string(80)", "slug": "string(80)", "active": "boolean", "sortOrder": "integer"}
+      ,"attributeMetadata": {"required": ["name","slug","active","sortOrder"], "defaults": {"name":null,"slug":null,"active":true,"sortOrder":0}}
     },
     {
       "id": "editorial_articles",
       "purpose": "Private source records including drafts, schedules and moderation metadata.",
       "permissions": ["read(\"team:editors\")", "create(\"team:editors\")", "update(\"team:editors\")", "delete(\"team:editors\")"],
-      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "longtext (JSON-serialized string array)", "category": "string(80)", "author": "string(120)", "status": "enum[Draft,Published,Scheduled,Archived]", "publishedAt": "datetime", "featured": "boolean"}
+      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "text(65535)", "category": "string(80)", "author": "string(120)", "status": "enum[Draft,Published,Scheduled,Archived]", "publishedAt": "datetime", "featured": "boolean"},
+      "attributeMetadata": {"required": ["title","slug","excerpt","body","category","author","status","publishedAt","featured"], "defaults": {"title":null,"slug":null,"excerpt":null,"body":null,"category":null,"author":null,"status":null,"publishedAt":null,"featured":false}, "compatibleTypes": {"body":["text","longtext"]}}
     },
     {
       "id": "advertiser_records",
       "purpose": "Private advertiser records and approval workflow; never public-read.",
       "permissions": ["read(\"team:editors\")", "create(\"team:editors\")", "update(\"team:editors\")", "delete(\"team:editors\")"],
-      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "offer": "string(500)", "category": "string(80)", "location": "string(180)", "serviceArea": "string(180)", "phone": "string(40)", "whatsapp": "string(40)", "email": "email", "website": "url", "directionsUrl": "url", "contactConsent": "boolean (legacy all-fields opt-in; only true grants consent)", "phoneConsent": "boolean (required opt-in; false/absent denies)", "whatsappConsent": "boolean (required opt-in; false/absent denies)", "emailConsent": "boolean (required opt-in; false/absent denies)", "websiteConsent": "boolean (required opt-in; false/absent denies)", "directionsUrlConsent": "boolean (required opt-in; false/absent denies)", "status": "enum[Pending,Approved,Archived]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "media": "json", "placements": "string[]", "priority": "integer", "rotationKey": "string(120)"}
+      "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "offer": "string(500)", "category": "string(80)", "location": "string(180)", "serviceArea": "string(180)", "phone": "string(40)", "whatsapp": "string(40)", "email": "email", "website": "url", "directionsUrl": "url", "contactConsent": "boolean (legacy all-fields opt-in; only true grants consent)", "phoneConsent": "boolean (required opt-in; false/absent denies)", "whatsappConsent": "boolean (required opt-in; false/absent denies)", "emailConsent": "boolean (required opt-in; false/absent denies)", "websiteConsent": "boolean (required opt-in; false/absent denies)", "directionsUrlConsent": "boolean (required opt-in; false/absent denies)", "status": "enum[Pending,Approved,Archived]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "media": "text(65535)", "placements": "string[]", "priority": "integer", "rotationKey": "string(120)"},
+      "attributeMetadata": {"required": ["business","title","description","offer","category","location","serviceArea","phone","whatsapp","email","website","directionsUrl","contactConsent","phoneConsent","whatsappConsent","emailConsent","websiteConsent","directionsUrlConsent","status","active","startsAt","endsAt","placements","priority","rotationKey"], "optional": ["media"], "defaults": {"business":null,"title":null,"description":null,"offer":null,"category":null,"location":null,"serviceArea":null,"phone":null,"whatsapp":null,"email":null,"website":null,"directionsUrl":null,"contactConsent":null,"phoneConsent":null,"whatsappConsent":null,"emailConsent":null,"websiteConsent":null,"directionsUrlConsent":null,"status":null,"active":false,"startsAt":null,"endsAt":null,"media":null,"placements":null,"priority":0,"rotationKey":null}, "compatibleTypes": {"media":["text","longtext"]}}
     },
     {
       "id": "corrections",
       "permissions": ["create(\"any\")", "read(\"team:editors\")", "update(\"team:editors\")"],
-      "attributes": {"articleId": "string(80)", "message": "string(2000)", "email": "email", "status": "enum[Open,Resolved]"}
+      "attributes": {"articleId": "string(80)", "message": "string(2000)", "email": "email", "status": "enum[Open,Resolved]"},
+      "attributeMetadata": {"required": ["articleId","message","email","status"], "defaults": {"articleId":null,"message":null,"email":null,"status":null}}
     },
     {
       "id": "analytics_events",
       "permissions": ["create(\"any\")", "read(\"team:editors\")"],
-      "attributes": {"name": "string(80)", "properties": "string(4000)", "occurredAt": "datetime"}
+      "attributes": {"name": "string(80)", "properties": "string(4000)", "occurredAt": "datetime"},
+      "attributeMetadata": {"required": ["name","properties","occurredAt"], "defaults": {"name":null,"properties":null,"occurredAt":null}}
     }
   ],
   "teams": [{"id": "editors", "roles": ["owner", "editor", "contributor"]}],

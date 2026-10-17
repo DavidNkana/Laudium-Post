@@ -18,7 +18,8 @@ const typeMap = new Map([
 ]);
 
 export function parseAttribute(description) {
-  const value = description.trim();
+  const metadata = typeof description === 'string' ? {} : description;
+  const value = (metadata.descriptor ?? metadata.type ?? description).trim();
   const enumMatch = /^enum\[([^\]]+)\]$/u.exec(value);
   if (enumMatch) return {type: 'enum', elements: enumMatch[1].split(',').map(item => item.trim())};
   const sizedString = /^string\((\d+)\)$/u.exec(value);
@@ -27,7 +28,7 @@ export function parseAttribute(description) {
   const mapped = typeMap.get(value) ?? [...typeMap.entries()].find(([key]) => value.startsWith(`${key} (`))?.[1];
   if (mapped) return {...mapped};
   const sizedText = /^text\((\d+)\)$/u.exec(value);
-  if (sizedText) return {type: Number(sizedText[1]) > 65535 ? 'longtext' : 'text'};
+  if (sizedText) return {type: Number(sizedText[1]) > 65535 ? 'longtext' : 'text', size: Number(sizedText[1]) > 65535 ? undefined : Number(sizedText[1])};
   throw new Error(`Unsupported schema attribute descriptor: ${value}`);
 }
 
@@ -45,7 +46,18 @@ export function validateEndpoint(value, {allowSelfHosted = false} = {}) {
 }
 
 export function assertColumnCompatible(existing, expected, label = 'column') {
-  const property = ['type', 'size', 'array', 'required', 'default', 'elements'].find(key => JSON.stringify(existing[key] ?? null) !== JSON.stringify(expected[key] ?? null));
+  const allowedTypes = expected.compatibleTypes ?? [expected.type];
+  if (!allowedTypes.includes(existing.type)) throw new Error(`${label} exists with incompatible type`);
+  // A longtext column has no meaningful size. It is an explicitly allowed
+  // compatibility target for JSON-string fields, but must not make unrelated
+  // text/string size drift invisible.
+  const properties = ['array', 'required', 'default', 'elements'];
+  if (existing.type !== 'longtext' && expected.size !== undefined) properties.splice(0, 0, 'size');
+  const property = properties.find(key => {
+    const existingValue = key === 'array' ? Boolean(existing[key]) : existing[key] ?? null;
+    const expectedValue = key === 'array' ? Boolean(expected[key]) : expected[key] ?? null;
+    return JSON.stringify(existingValue) !== JSON.stringify(expectedValue);
+  });
   if (property) throw new Error(`${label} exists with incompatible ${property}`);
 }
 
@@ -74,14 +86,31 @@ export function buildProvisioningPlan(schema, {databaseId, bucketId, teamName}) 
   if (!schema?.database?.id || !Array.isArray(schema.collections) || !schema.collections.length) {
     throw new Error('Schema must define a database and at least one collection');
   }
-  const tables = schema.collections.map(collection => ({
+  const tables = schema.collections.map(collection => {
+    const fields = Object.keys(collection.attributes ?? {});
+    const metadata = collection.attributeMetadata ?? {};
+    const optional = new Set(metadata.optional ?? []);
+    const required = new Set(metadata.required ?? fields.filter(key => !optional.has(key)));
+    if (new Set([...required, ...optional]).size !== fields.length || fields.some(key => !required.has(key) && !optional.has(key))) {
+      throw new Error(`Schema metadata must classify every attribute in ${collection.id} as required or optional`);
+    }
+    const unknownMetadata = [...new Set([...(metadata.required ?? []), ...(metadata.optional ?? []), ...Object.keys(metadata.defaults ?? {}), ...Object.keys(metadata.compatibleTypes ?? {})])].find(key => !fields.includes(key));
+    if (unknownMetadata) throw new Error(`Schema metadata references unknown attribute ${collection.id}.${unknownMetadata}`);
+    return {
     id: collection.id,
     name: collection.id,
     permissions: collection.permissions ?? [],
     rowSecurity: collection.rowSecurity ?? false,
-    columns: Object.entries(collection.attributes ?? {}).map(([key, descriptor]) => ({key, required: false, ...parseAttribute(descriptor)})),
+    columns: Object.entries(collection.attributes ?? {}).map(([key, descriptor]) => ({
+      key,
+      required: required.has(key),
+      default: Object.prototype.hasOwnProperty.call(metadata.defaults ?? {}, key) ? metadata.defaults[key] : null,
+      compatibleTypes: metadata.compatibleTypes?.[key],
+      ...parseAttribute(descriptor),
+    })),
     indexes: (collection.indexes ?? []).map(index => ({...index, columns: index.columns ?? index.attributes, orders: index.orders ?? (index.columns ?? index.attributes).map(() => 'ASC')})),
-  }));
+    };
+  });
   return {
     database: {id: databaseId, name: schema.database.name},
     tables,
@@ -165,8 +194,9 @@ async function ensureColumnsAndIndexes(api, databaseId, table) {
       assertColumnCompatible(existing, column, `Column ${table.id}.${column.key}`);
       continue;
     }
-    const {type, ...definition} = column;
-    const body = {key: column.key, required: false, array: Boolean(column.array), ...definition};
+    const {type, compatibleTypes: _compatibleTypes, default: defaultValue, ...definition} = column;
+    const body = {key: column.key, required: column.required, array: Boolean(column.array), ...definition};
+    if (defaultValue !== null) body.default = defaultValue;
     await request(api.base, api.project, api.key, 'POST', `${prefix}/columns/${column.type}`, body);
     console.log(`column ${table.id}.${column.key} created`);
   }

@@ -39,6 +39,7 @@ test('existing row security, permissions, and schema drift fail closed', () => {
   assert.deepEqual(assertTableCompatible({name: 'articles', rowSecurity: false, enabled: true, permissions: []}, {name: 'articles', rowSecurity: false, permissions: ['read("any")']}), ['read("any")']);
   assert.throws(() => assertColumnCompatible({type: 'enum', elements: ['Draft', 'Published'], required: false}, {type: 'enum', elements: ['Draft', 'Live'], required: false}), /elements/);
   assert.throws(() => assertColumnCompatible({type: 'string', size: 120, array: false, required: false}, {type: 'string', size: 140, array: false, required: false}), /size/);
+  assert.throws(() => assertColumnCompatible({type: 'longtext', array: false, required: true}, {type: 'string', size: 140, array: false, required: true}), /type/);
   assert.throws(() => assertIndexCompatible({type: 'key', columns: ['publishedAt', '$id'], orders: ['ASC', 'ASC']}, {type: 'key', columns: ['publishedAt', '$id'], orders: ['DESC', 'DESC']}), /incompatible/);
 });
 
@@ -47,9 +48,20 @@ test('team reruns do not compare roles omitted by the Teams GET response', () =>
   assert.throws(() => assertTeamCompatible({name: 'Other'}, {name: 'Editors', roles: ['owner']}), /incompatible name/);
 });
 
-test('long body content uses current longtext mapping', () => {
+test('manual public table definitions are accepted without weakening field or security contracts', () => {
   const plan = buildProvisioningPlan(schema, {databaseId: 'laudium_post', bucketId: 'laudium_media', teamName: 'Editors'});
-  assert.equal(parseAttribute('longtext').type, 'longtext');
-  assert.equal(plan.tables.find(table => table.id === 'public_articles').columns.find(column => column.key === 'body').type, 'longtext');
-  assert.equal(plan.tables.find(table => table.id === 'editorial_articles').columns.find(column => column.key === 'body').type, 'longtext');
+  const articles = plan.tables.find(table => table.id === 'public_articles');
+  const ads = plan.tables.find(table => table.id === 'public_ads');
+  const body = articles.columns.find(column => column.key === 'body');
+  const media = ads.columns.find(column => column.key === 'media');
+  assert.equal(parseAttribute('text(65535)').type, 'text');
+  assert.deepEqual({required: body.required, default: body.default, type: body.type, size: body.size, compatibleTypes: body.compatibleTypes}, {required: true, default: null, type: 'text', size: 65535, compatibleTypes: ['text', 'longtext']});
+  assert.deepEqual({required: media.required, default: media.default, type: media.type, size: media.size, compatibleTypes: media.compatibleTypes}, {required: false, default: null, type: 'text', size: 65535, compatibleTypes: ['text', 'longtext']});
+  assert.equal(ads.columns.find(column => column.key === 'active').default, false);
+  assert.equal(ads.columns.find(column => column.key === 'priority').default, 0);
+  assert.equal(plan.tables.find(table => table.id === 'public_categories').columns.find(column => column.key === 'active').default, true);
+  assert.doesNotThrow(() => assertColumnCompatible({type: 'text', size: 65535, array: false, required: true, default: null}, body));
+  assert.doesNotThrow(() => assertColumnCompatible({type: 'longtext', array: false, required: true, default: null}, body));
+  assert.throws(() => assertColumnCompatible({type: 'text', size: 65534, array: false, required: true, default: null}, body), /size/);
+  assert.throws(() => assertColumnCompatible({type: 'text', size: 65535, array: true, required: false, default: null}, media), /array/);
 });
