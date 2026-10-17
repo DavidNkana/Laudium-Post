@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, contentAdapter, filterLiveAds, listAllAds, listAllPlacementAds, resolveContentMode} from '../src/adapter';
+import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, contentAdapter, filterLiveAds, listAllAds, listAllPlacementAds, resolveContentMode, serializeStructuredValue, toAd, toArticle} from '../src/adapter';
 import {requiredPublicIndexes, verifySearchIndexes} from '../src/appwriteSetup';
 
 describe('content adapter configuration', () => {
@@ -70,5 +70,18 @@ describe('content adapter configuration', () => {
   it('verifies every Query.search field has a provisioned full-text index', () => {
     expect(verifySearchIndexes(requiredPublicIndexes)).toBe(true);
     expect(verifySearchIndexes(requiredPublicIndexes.filter(index => index.key !== 'ads_category_search'))).toBe(false);
+  });
+  it('maps JSON strings from Appwrite longtext fields into typed values', () => {
+    const ad = toAd({$id: 'ad', media: '{"url":"https://example.com/ad.png","type":"image","width":1200,"height":800}', contacts: '{"website":"https://example.com"}'});
+    expect(ad.media).toEqual({url: 'https://example.com/ad.png', type: 'image', width: 1200, height: 800});
+    expect(ad.contacts).toEqual({website: 'https://example.com'});
+    expect(toArticle({$id: 'article', body: '["First paragraph","Second paragraph"]', publishedAt: '2026-10-16T00:00:00.000Z'}).body).toEqual(['First paragraph', 'Second paragraph']);
+    expect(serializeStructuredValue({website: 'https://example.com'})).toBe('{"website":"https://example.com"}');
+  });
+  it('fails closed for malformed structured JSON', () => {
+    const ad = toAd({$id: 'ad', media: '{not-json', contacts: '["not-an-object"]'});
+    expect(ad.media).toBeUndefined();
+    expect(ad.contacts).toBeUndefined();
+    expect(toArticle({$id: 'article', body: '{not-json', publishedAt: '2026-10-16T00:00:00.000Z'}).body).toEqual([]);
   });
 });

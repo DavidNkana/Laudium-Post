@@ -65,6 +65,11 @@ export function assertTableCompatible(existing, expected, label = 'table') {
   return (expected.permissions ?? []).filter(permission => !(existing.permissions ?? []).includes(permission));
 }
 
+/** Teams GET responses do not include the create-time roles configuration. */
+export function assertTeamCompatible(existing, expected, label = 'team') {
+  if (existing.name !== expected.name) throw new Error(`${label} exists with incompatible name`);
+}
+
 export function buildProvisioningPlan(schema, {databaseId, bucketId, teamName}) {
   if (!schema?.database?.id || !Array.isArray(schema.collections) || !schema.collections.length) {
     throw new Error('Schema must define a database and at least one collection');
@@ -192,7 +197,7 @@ async function ensureBucket(api, plan) {
 async function ensureTeam(api, plan) {
   const resource = `/teams/${encodeURIComponent(plan.team.id)}`;
   const current = await getOrCreate(api, resource, {teamId: plan.team.id, name: plan.team.name, roles: plan.team.roles});
-  if (!current.created && (current.resource.name !== plan.team.name || JSON.stringify(current.resource.roles ?? []) !== JSON.stringify(plan.team.roles))) throw new Error(`Team ${plan.team.id} exists with incompatible name or roles`);
+  if (!current.created) assertTeamCompatible(current.resource, plan.team, `Team ${plan.team.id}`);
   console.log(`team ${plan.team.id} ${current.created ? 'created' : 'ready'}`);
 }
 

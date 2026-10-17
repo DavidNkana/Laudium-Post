@@ -1,5 +1,5 @@
 import {Client, Databases, Query, Storage} from 'appwrite';
-import {articles, ads, Article, Ad, AdPlacement, Category} from './data';
+import {articles, ads, Article, Ad, AdMedia, AdPlacement, Category} from './data';
 import {eligibleAds, publicAdContacts} from './advertising';
 
 export type PageResult<T> = {items: T[]; nextCursor?: string; hasMore: boolean};
@@ -41,6 +41,40 @@ export type AppwriteConfig = {endpoint: string; projectId: string; databaseId: s
  */
 export const ARTICLE_ORDER = ['publishedAt DESC', '$id DESC'] as const;
 export const AD_ORDER = ['startsAt DESC', '$id DESC'] as const;
+
+/**
+ * TablesDB provisions JSON-shaped fields as longtext. Keep the wire format
+ * explicit so reads and future trusted writes use the same representation.
+ */
+export function serializeStructuredValue(value: unknown): string {
+  const serialized = JSON.stringify(value);
+  if (serialized === undefined) throw new TypeError('Structured value must be JSON serializable');
+  return serialized;
+}
+
+function parseStructuredObject(value: unknown): Record<string, any> | undefined {
+  let parsed = value;
+  if (typeof parsed === 'string') {
+    try { parsed = JSON.parse(parsed); } catch { return undefined; }
+  }
+  return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? {...parsed as Record<string, any>} : undefined;
+}
+
+type StoredAdMedia = AdMedia & {fileId?: string; posterFileId?: string};
+
+function parseMedia(value: unknown): StoredAdMedia | undefined {
+  const media = parseStructuredObject(value);
+  if (!media || (typeof media.url !== 'string' && typeof media.fileId !== 'string') || !['image', 'video'].includes(media.type) || !Number.isFinite(media.width) || !Number.isFinite(media.height)) return undefined;
+  return media as StoredAdMedia;
+}
+
+function parseArticleBody(value: unknown): string[] {
+  let parsed = value;
+  if (typeof parsed === 'string') {
+    try { parsed = JSON.parse(parsed); } catch { return []; }
+  }
+  return Array.isArray(parsed) && parsed.every(item => typeof item === 'string') ? parsed : [];
+}
 
 export function isLiveAdDocument(document: Record<string, any>, now = new Date()): boolean {
   const startsAt = typeof document.startsAt === 'string' ? new Date(document.startsAt) : undefined;
@@ -165,15 +199,16 @@ export class AppwriteContentAdapter implements ContentAdapter {
   }
 }
 
-const toArticle = (d: Record<string, any>): Article => ({id: d.$id, title: d.title, excerpt: d.excerpt, body: Array.isArray(d.body) ? d.body : [d.body], category: d.category, author: d.author, date: new Date(d.publishedAt).toLocaleDateString('en-GB', {day: 'numeric', month: 'long', year: 'numeric'}), readTime: d.readTime || '5 min read', accent: d.accent || 'ink', featured: d.featured, status: d.status});
-const toAd = (d: Record<string, any>, storage?: Storage, bucketId?: string): Ad => {
-  const media = d.media && typeof d.media === 'object' ? {...d.media} : undefined;
+export const toArticle = (d: Record<string, any>): Article => ({id: d.$id, title: d.title, excerpt: d.excerpt, body: parseArticleBody(d.body), category: d.category, author: d.author, date: new Date(d.publishedAt).toLocaleDateString('en-GB', {day: 'numeric', month: 'long', year: 'numeric'}), readTime: d.readTime || '5 min read', accent: d.accent || 'ink', featured: d.featured, status: d.status});
+export const toAd = (d: Record<string, any>, storage?: Storage, bucketId?: string): Ad => {
+  const media = parseMedia(d.media);
+  const contacts = parseStructuredObject(d.contacts);
   if (media && !media.url && media.fileId && storage && bucketId) media.url = storage.getFileView(bucketId, media.fileId).toString();
   if (media && media.posterFileId && storage && bucketId) media.posterUrl = storage.getFileView(bucketId, media.posterFileId).toString();
   // The trusted public_ads projection has already applied source consent and
   // contains only sanitized public channels. Assert that boundary explicitly
   // so the strict source/demo consent check does not hide valid projections.
-  const ad: Ad = {id: d.$id, business: d.business, title: d.title, description: d.description, offer: d.offer, category: d.category, location: d.location, serviceArea: d.serviceArea, contacts: d.contacts, contactConsent: true, accent: d.accent || 'blue', featured: d.featured, startsAt: d.startsAt, endsAt: d.endsAt, status:d.status, active:d.active, placements:d.placements, priority:d.priority, rotationKey:d.rotationKey, media};
+  const ad: Ad = {id: d.$id, business: d.business, title: d.title, description: d.description, offer: d.offer, category: d.category, location: d.location, serviceArea: d.serviceArea, contacts, contactConsent: true, accent: d.accent || 'blue', featured: d.featured, startsAt: d.startsAt, endsAt: d.endsAt, status:d.status, active:d.active, placements:d.placements, priority:d.priority, rotationKey:d.rotationKey, media};
   return {...ad, contacts: publicAdContacts(ad)};
 };
 

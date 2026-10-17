@@ -4,7 +4,9 @@
 
 The workflow is deliberately non-destructive: it gets resources by their explicit IDs, creates missing resources, adds only missing declared permissions, and refuses incompatible existing settings, columns, indexes, or row-security configuration. It never overwrites existing settings or deletes data/resources. Job output contains only resource IDs and status; the API key is never passed to frontend code, committed, or printed.
 
-Appwrite's current TablesDB API exposes typed text/string/number/date columns but not the Documents API's JSON column type. Schema `json`/`json object` fields and long article bodies are provisioned as `longtext` (the JSON representation remains the application contract); `string[]` is a string column with `array: true`. Deprecated `string(30000)` body descriptors are not used.
+Appwrite's current TablesDB API exposes typed text/string/number/date columns but not the Documents API's JSON column type. Schema `json`/`json object` fields and article bodies are provisioned as `longtext`; the application contract is `JSON.stringify` on writes and safe `JSON.parse` on reads. Article `body` is a JSON-serialized string array; `public_ads.media` and `public_ads.contacts` are JSON-serialized objects. Malformed structured text is rejected at the public adapter boundary (empty article body, no media, and no contacts), never rendered as trusted data. `string[]` is a string column with `array: true`. Deprecated `string(30000)` body descriptors are not used.
+
+The `editors` team's roles (`owner`, `editor`, `contributor`) are create-time/documented configuration. Appwrite's `GET /teams/{teamId}` response does not expose roles, so repeat provisioning validates only the existing team name and never fails because roles are absent or attempts to overwrite them.
 
 ## Run it
 

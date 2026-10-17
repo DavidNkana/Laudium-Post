@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {buildProvisioningPlan, parseAttribute, validateEndpoint, assertColumnCompatible, assertIndexCompatible, assertTableCompatible} from './provision-appwrite.mjs';
+import {buildProvisioningPlan, parseAttribute, validateEndpoint, assertColumnCompatible, assertIndexCompatible, assertTableCompatible, assertTeamCompatible} from './provision-appwrite.mjs';
 import schema from '../docs/appwrite-schema.json' with {type: 'json'};
 
 test('schema maps to a complete TablesDB plan without secrets or deletes', () => {
@@ -40,6 +40,11 @@ test('existing row security, permissions, and schema drift fail closed', () => {
   assert.throws(() => assertColumnCompatible({type: 'enum', elements: ['Draft', 'Published'], required: false}, {type: 'enum', elements: ['Draft', 'Live'], required: false}), /elements/);
   assert.throws(() => assertColumnCompatible({type: 'string', size: 120, array: false, required: false}, {type: 'string', size: 140, array: false, required: false}), /size/);
   assert.throws(() => assertIndexCompatible({type: 'key', columns: ['publishedAt', '$id'], orders: ['ASC', 'ASC']}, {type: 'key', columns: ['publishedAt', '$id'], orders: ['DESC', 'DESC']}), /incompatible/);
+});
+
+test('team reruns do not compare roles omitted by the Teams GET response', () => {
+  assert.doesNotThrow(() => assertTeamCompatible({name: 'Editors'}, {name: 'Editors', roles: ['owner', 'editor', 'contributor']}));
+  assert.throws(() => assertTeamCompatible({name: 'Other'}, {name: 'Editors', roles: ['owner']}), /incompatible name/);
 });
 
 test('long body content uses current longtext mapping', () => {
