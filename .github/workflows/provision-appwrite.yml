@@ -1,0 +1,67 @@
+name: Provision Appwrite
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: Appwrite project ID
+        required: true
+        type: string
+      endpoint:
+        description: Appwrite endpoint (cloud or regional)
+        required: true
+        default: https://cloud.appwrite.io/v1
+        type: string
+      database_id:
+        description: TablesDB database ID
+        required: true
+        default: laudium_post
+        type: string
+      bucket_id:
+        description: Storage bucket ID
+        required: true
+        default: laudium_media
+        type: string
+      team_name:
+        description: Editor team display name
+        required: true
+        default: Laudium Post Editors
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appwrite-provision-${{ inputs.project_id }}
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    env:
+      APPWRITE_PROJECT_ID: ${{ inputs.project_id }}
+      APPWRITE_ENDPOINT: ${{ inputs.endpoint }}
+      APPWRITE_DATABASE_ID: ${{ inputs.database_id }}
+      APPWRITE_BUCKET_ID: ${{ inputs.bucket_id }}
+      APPWRITE_TEAM_NAME: ${{ inputs.team_name }}
+    steps:
+      - name: Check out schema
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Validate provisioning plan
+        run: node scripts/provision-appwrite.mjs --dry-run
+
+      - name: Apply provisioning plan
+        env:
+          APPWRITE_API_KEY: ${{ secrets.APPWRITE_API_KEY }}
+        run: node scripts/provision-appwrite.mjs
