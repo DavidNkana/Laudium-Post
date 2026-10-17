@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {buildProvisioningPlan, parseAttribute, validateEndpoint, assertColumnCompatible, assertIndexCompatible, assertTableCompatible, assertTeamCompatible} from './provision-appwrite.mjs';
+import {buildProvisioningPlan, parseAttribute, validateEndpoint, assertColumnCompatible, assertIndexCompatible, assertTableCompatible, assertTableSchemaCompatible, assertTeamCompatible} from './provision-appwrite.mjs';
 import schema from '../docs/appwrite-schema.json' with {type: 'json'};
 
 test('schema maps to a complete TablesDB plan without secrets or deletes', () => {
@@ -41,6 +41,40 @@ test('existing row security, permissions, and schema drift fail closed', () => {
   assert.throws(() => assertColumnCompatible({type: 'string', size: 120, array: false, required: false}, {type: 'string', size: 140, array: false, required: false}), /size/);
   assert.throws(() => assertColumnCompatible({type: 'longtext', array: false, required: true}, {type: 'string', size: 140, array: false, required: true}), /type/);
   assert.throws(() => assertIndexCompatible({type: 'key', columns: ['publishedAt', '$id'], orders: ['ASC', 'ASC']}, {type: 'key', columns: ['publishedAt', '$id'], orders: ['DESC', 'DESC']}), /incompatible/);
+});
+
+test('unexpected columns are rejected on every declared table, including public tables', () => {
+  assert.throws(() => assertTableSchemaCompatible(
+    [{key: 'title'}, {key: 'unreviewedColumn'}],
+    [{key: 'title'}],
+    [],
+    [],
+    'public_articles',
+  ), /unexpected keys: unreviewedColumn/);
+  assert.doesNotThrow(() => assertTableSchemaCompatible(
+    [{key: 'title'}],
+    [{key: 'title'}],
+    [],
+    [],
+    'public_articles',
+  ));
+});
+
+test('unexpected indexes are rejected on every declared table, including public tables', () => {
+  assert.throws(() => assertTableSchemaCompatible(
+    [],
+    [],
+    [{key: 'articles_title_search'}, {key: 'unreviewed_index'}],
+    [{key: 'articles_title_search'}],
+    'public_articles',
+  ), /unexpected keys: unreviewed_index/);
+  assert.doesNotThrow(() => assertTableSchemaCompatible(
+    [],
+    [],
+    [{key: 'articles_title_search'}],
+    [{key: 'articles_title_search'}],
+    'public_articles',
+  ));
 });
 
 test('team reruns do not compare roles omitted by the Teams GET response', () => {

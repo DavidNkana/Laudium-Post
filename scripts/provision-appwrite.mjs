@@ -68,6 +68,17 @@ export function assertIndexCompatible(existing, expected, label = 'index') {
   }
 }
 
+function assertNoUnexpectedEntries(existing, expected, key, label) {
+  const declared = new Set(expected.map(item => item[key]));
+  const unexpected = existing.filter(item => !declared.has(item[key])).map(item => item[key]);
+  if (unexpected.length) throw new Error(`${label} has unexpected ${key}s: ${unexpected.join(', ')}`);
+}
+
+export function assertTableSchemaCompatible(existingColumns, expectedColumns, existingIndexes, expectedIndexes, tableId = 'table') {
+  assertNoUnexpectedEntries(existingColumns, expectedColumns, 'key', `Table ${tableId}`);
+  assertNoUnexpectedEntries(existingIndexes, expectedIndexes, 'key', `Table ${tableId}`);
+}
+
 export function assertTableCompatible(existing, expected, label = 'table') {
   if (existing.name !== expected.name || Boolean(existing.rowSecurity) !== Boolean(expected.rowSecurity) || (existing.enabled !== true && existing.enabled !== 'enabled')) {
     throw new Error(`${label} exists with incompatible name, rowSecurity, or enabled setting`);
@@ -188,6 +199,10 @@ async function ensureTable(api, databaseId, table) {
 async function ensureColumnsAndIndexes(api, databaseId, table) {
   const prefix = `/tablesdb/${encodeURIComponent(databaseId)}/tables/${encodeURIComponent(table.id)}`;
   const columns = (await request(api.base, api.project, api.key, 'GET', `${prefix}/columns`)).columns ?? [];
+  const indexes = (await request(api.base, api.project, api.key, 'GET', `${prefix}/indexes`)).indexes ?? [];
+  // Validate the complete shape before creating anything. This keeps reruns fail-closed
+  // and prevents an extra public column or index from becoming an unreviewed contract.
+  assertTableSchemaCompatible(columns, table.columns, indexes, table.indexes, table.id);
   for (const column of table.columns) {
     const existing = columns.find(item => item.key === column.key);
     if (existing) {
@@ -200,7 +215,6 @@ async function ensureColumnsAndIndexes(api, databaseId, table) {
     await request(api.base, api.project, api.key, 'POST', `${prefix}/columns/${column.type}`, body);
     console.log(`column ${table.id}.${column.key} created`);
   }
-  const indexes = (await request(api.base, api.project, api.key, 'GET', `${prefix}/indexes`)).indexes ?? [];
   for (const index of table.indexes) {
     const existing = indexes.find(item => item.key === index.key);
     if (existing) {
