@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       endpoint:
-        description: Appwrite endpoint (cloud or regional)
+        description: Official Appwrite Cloud regional endpoint ending exactly in /v1
         required: true
         default: https://cloud.appwrite.io/v1
         type: string
@@ -39,6 +39,7 @@ jobs:
   provision:
     runs-on: ubuntu-22.04
     timeout-minutes: 15
+    environment: appwrite-production
     env:
       APPWRITE_PROJECT_ID: ${{ inputs.project_id }}
       APPWRITE_ENDPOINT: ${{ inputs.endpoint }}
@@ -48,6 +49,11 @@ jobs:
     steps:
       - name: Check out schema
         uses: actions/checkout@v4
+        with:
+          # Provisioning code is always reviewed protected-main code, never the
+          # branch selected when workflow_dispatch was started.
+          ref: main
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
