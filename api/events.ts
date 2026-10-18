@@ -3,14 +3,14 @@ import {Client, Databases, ID} from 'appwrite';
 const allowed = new Set(['article_opened', 'article_saved', 'article_shared', 'ad_opened', 'ad_impression', 'ad_rotated', 'ad_contact_clicked', 'ad_reported', 'advertise_cta_clicked', 'advertise_whatsapp_launch', 'sidebar_open', 'sidebar_item_selected', 'search_used', 'admin_action']);
 const properties: Record<string, Set<string>> = {
   article_opened: new Set(['id', 'category']), article_saved: new Set(['id', 'saved']), article_shared: new Set(['id']),
-  ad_opened: new Set(['id']), ad_impression: new Set(['id', 'placement']), ad_rotated: new Set(['id', 'placement']), ad_contact_clicked: new Set(['id', 'contact']), ad_reported: new Set(['id']), advertise_cta_clicked: new Set(['path', 'listing']), advertise_whatsapp_launch: new Set(['outcome']),
+  ad_opened: new Set(['id']), ad_impression: new Set(['id', 'placement']), ad_rotated: new Set(['id', 'placement']), ad_contact_clicked: new Set(['id', 'placement', 'contact']), ad_reported: new Set(['id']), advertise_cta_clicked: new Set(['path', 'listing']), advertise_whatsapp_launch: new Set(['outcome']),
   sidebar_open: new Set([]), sidebar_item_selected: new Set(['item']), search_used: new Set(['queryLength']), admin_action: new Set(['action']),
 };
 const enums: Record<string, Record<string, Set<string>>> = {
   article_opened: {category: new Set(['Community', 'Business', 'Culture', 'Sport', 'Civic'])},
   ad_impression: {placement: new Set(['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article'])},
   ad_rotated: {placement: new Set(['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article'])},
-  ad_contact_clicked: {contact: new Set(['Call', 'WhatsApp', 'Email', 'Website', 'Directions'])},
+  ad_contact_clicked: {placement: new Set(['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article']), contact: new Set(['Call', 'WhatsApp', 'Email', 'Website', 'Directions'])},
   advertise_cta_clicked: {path: new Set(['header', 'sidebar', 'directory'])},
   advertise_whatsapp_launch: {outcome: new Set(['success', 'failure'])},
   admin_action: {action: new Set(['New article draft created', 'Opened The city that chooses to stay ready', 'Opened A field guide to the Sunday game', 'Opened Planning a winter on the high street'])},

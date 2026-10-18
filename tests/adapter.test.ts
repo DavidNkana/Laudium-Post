@@ -19,6 +19,14 @@ describe('content adapter configuration', () => {
     expect(result.hasMore).toBe(true);
     expect(result.items[0].status).toBe('Published');
   });
+  it('continues demo pagination with a cursor and no duplicate page boundary', async () => {
+    const adapter = new DemoContentAdapter();
+    const first = await adapter.listArticles('', '', {limit: 2});
+    const second = await adapter.listArticles('', '', {cursor: first.nextCursor, limit: 2});
+    expect(first.nextCursor).toBeDefined();
+    expect(second.items.map(item => item.id)).not.toContain(first.items[0].id);
+    expect([...first.items, ...second.items]).toHaveLength(4);
+  });
   it('never turns an unconfigured default into demo fixtures', async () => {
     await expect(contentAdapter.listArticles()).rejects.toThrow(/configuration is missing/);
   });

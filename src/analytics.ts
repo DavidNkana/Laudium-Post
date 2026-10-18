@@ -7,7 +7,7 @@ export type AnalyticsEvent = {name: EventName; properties: Record<string, Analyt
 
 const propertyAllowList: Record<EventName, string[]> = {
   article_opened: ['id', 'category'], article_saved: ['id', 'saved'], article_shared: ['id'],
-  ad_opened: ['id'], ad_impression: ['id','placement'], ad_rotated: ['id','placement'], ad_contact_clicked: ['id','contact'], ad_reported: ['id'], advertise_cta_clicked: ['path', 'listing'], advertise_whatsapp_launch: ['outcome'],
+  ad_opened: ['id'], ad_impression: ['id','placement'], ad_rotated: ['id','placement'], ad_contact_clicked: ['id','placement','contact'], ad_reported: ['id'], advertise_cta_clicked: ['path', 'listing'], advertise_whatsapp_launch: ['outcome'],
   sidebar_open: [], sidebar_item_selected: ['item'],
   // Search terms are deliberately not an allowed property.
   search_used: ['queryLength'], admin_action: ['action'],
@@ -16,7 +16,7 @@ const propertyEnums: Partial<Record<EventName, Partial<Record<string, readonly A
   article_opened: {category: ['Community', 'Business', 'Culture', 'Sport', 'Civic']},
   ad_impression: {placement: ['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article']},
   ad_rotated: {placement: ['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article']},
-  ad_contact_clicked: {contact: ['Call', 'WhatsApp', 'Email', 'Website', 'Directions']},
+  ad_contact_clicked: {placement: ['home-top', 'home-latest-end', 'home-directory-end', 'section', 'search', 'community', 'article'], contact: ['Call', 'WhatsApp', 'Email', 'Website', 'Directions']},
   advertise_cta_clicked: {path: ['header', 'sidebar', 'directory']},
   advertise_whatsapp_launch: {outcome: ['success', 'failure']},
   admin_action: {action: ['New article draft created', 'Opened The city that chooses to stay ready', 'Opened A field guide to the Sunday game', 'Opened Planning a winter on the high street']},

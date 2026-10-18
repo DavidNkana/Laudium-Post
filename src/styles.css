@@ -6,3 +6,5 @@
 .newspaper-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:22px}.newspaper-columns .editorial-article{break-inside:avoid}
 @media(max-width:700px){.newspaper-columns{gap:13px}.newspaper-feed{columns:initial;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}}
 html,body,#root{overflow-x:hidden}
+@media(min-width:701px){.newspaper-rail{transform:none;position:fixed;inset:0 auto 0 0;width:220px;background:var(--parchment);border-right:1px solid var(--rule);z-index:20;overflow-y:auto}.rail-close{display:none}.topbar,main{margin-left:220px}.topbar{padding-left:28px;padding-right:28px}.drawer-backdrop{display:none}.load-more{display:block;margin:28px auto;padding:12px 20px;border:1px solid var(--ink);font:700 12px var(--sans);letter-spacing:.04em}.load-more:disabled{opacity:.65;cursor:default}}
+.load-more{padding:12px 18px;border:1px solid var(--ink);font:700 12px var(--sans);letter-spacing:.04em}

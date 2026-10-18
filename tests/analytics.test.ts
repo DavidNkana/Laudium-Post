@@ -58,6 +58,9 @@ describe('analytics seam', () => {
     expect(sanitizeAnalyticsProperties('ad_contact_clicked', {id: 'ad-1', contact: 'javascript'})).toEqual({id: 'ad-1'});
     expect(sanitizeAnalyticsProperties('admin_action', {action: 'drop_database'})).toEqual({});
   });
+  it('records ad contact placement without accepting raw search terms', () => {
+    expect(sanitizeAnalyticsProperties('ad_contact_clicked', {id: 'ad-1', placement: 'article', contact: 'Website', query: 'private'})).toEqual({id: 'ad-1', placement: 'article', contact: 'Website'});
+  });
   it('requires 2xx and retries one failed delivery', async () => {
     vi.useFakeTimers();
     const fetcher = vi.fn().mockResolvedValueOnce(new Response(null, {status: 500})).mockResolvedValueOnce(new Response(null, {status: 204}));
