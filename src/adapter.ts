@@ -239,7 +239,7 @@ export class AppwriteContentAdapter implements ContentAdapter {
   }
 }
 
-export const toArticle = (d: Record<string, any>): Article => ({id: d.$id, title: d.title, excerpt: d.excerpt, body: parseArticleBody(d.body), category: d.category, author: d.author, date: new Date(d.publishedAt).toLocaleDateString('en-GB', {day: 'numeric', month: 'long', year: 'numeric'}), readTime: d.readTime || '5 min read', accent: d.accent || 'ink', featured: d.featured, status: d.status});
+export const toArticle = (d: Record<string, any>): Article => ({id: d.$id, title: d.title, excerpt: d.excerpt, body: parseArticleBody(d.body), category: d.category, author: d.author, date: new Date(d.publishedAt).toLocaleDateString('en-GB', {day: 'numeric', month: 'long', year: 'numeric'}), readTime: d.readTime || '5 min read', accent: d.accent || 'ink', featured: d.featured, status: d.status, media: parseMedia(d.media), presentation: parseStructuredObject(d.presentation) as Article['presentation']});
 export const toAd = (d: Record<string, any>, storage?: Storage, bucketId?: string): Ad => {
   const media = parseMedia(d.media);
   const contacts = parseStructuredObject(d.contacts);

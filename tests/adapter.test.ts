@@ -78,6 +78,11 @@ describe('content adapter configuration', () => {
     expect(toArticle({$id: 'article', body: '["First paragraph","Second paragraph"]', publishedAt: '2026-10-16T00:00:00.000Z'}).body).toEqual(['First paragraph', 'Second paragraph']);
     expect(serializeStructuredValue({website: 'https://example.com'})).toBe('{"website":"https://example.com"}');
   });
+  it('preserves live article media and editorial presentation fields', () => {
+    const article = toArticle({$id: 'article', title: 'Published story', publishedAt: '2026-10-16T00:00:00.000Z', media: '{"url":"https://example.com/story.jpg","type":"image","width":1200,"height":800}', presentation: '{"headlineScale":"large","alignment":"center"}'});
+    expect(article.media?.url).toBe('https://example.com/story.jpg');
+    expect(article.presentation).toEqual({headlineScale: 'large', alignment: 'center'});
+  });
   it('fails closed for malformed structured JSON', () => {
     const ad = toAd({$id: 'ad', media: '{not-json', contacts: '["not-an-object"]'});
     expect(ad.media).toBeUndefined();

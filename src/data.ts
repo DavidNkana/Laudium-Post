@@ -1,5 +1,6 @@
 export type Category = 'Community'|'Business'|'Culture'|'Sport'|'Civic';
-export type Article = {id:string; title:string; excerpt:string; body:string[]; category:Category; author:string; date:string; readTime:string; accent:string; featured?:boolean; status?:'Draft'|'Published'|'Scheduled'|'Archived'};
+export type EditorialPresentation = {headlineScale?:'standard'|'large'|'condensed'; alignment?:'left'|'center'};
+export type Article = {id:string; title:string; excerpt:string; body:string[]; category:Category; author:string; date:string; readTime:string; accent:string; featured?:boolean; status?:'Draft'|'Published'|'Scheduled'|'Archived'; media?:AdMedia; presentation?:EditorialPresentation};
 export type AdPlacement = 'home-top'|'home-latest-end'|'home-directory-end'|'section'|'search'|'community'|'article';
 export type AdMedia = {url:string; type:'image'|'video'; width:number; height:number; posterUrl?:string};
 export type AdContacts = {phone?:string; whatsapp?:string; email?:string; website?:string; directionsUrl?:string};
