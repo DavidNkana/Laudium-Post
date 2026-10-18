@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {buildProvisioningPlan, parseAttribute, validateEndpoint, assertColumnCompatible, assertIndexCompatible, assertTableCompatible, assertTableSchemaCompatible, assertTeamCompatible} from './provision-appwrite.mjs';
+import {buildProvisioningPlan, parseAttribute, validateEndpoint, assertBucketCompatible, assertColumnCompatible, assertIndexCompatible, assertTableCompatible, assertTableSchemaCompatible, assertTeamCompatible} from './provision-appwrite.mjs';
 import schema from '../docs/appwrite-schema.json' with {type: 'json'};
 
 test('schema maps to a complete TablesDB plan without secrets or deletes', () => {
@@ -12,6 +12,9 @@ test('schema maps to a complete TablesDB plan without secrets or deletes', () =>
   assert.deepEqual(plan.tables.find(table => table.id === 'public_ads').indexes.find(index => index.key === 'ads_starts_order_id').orders, ['DESC', 'DESC']);
   assert.deepEqual(parseAttribute('enum[Draft,Published]'), {type: 'enum', elements: ['Draft', 'Published']});
   assert.equal(plan.bucket.id, 'laudium_media');
+  assert.deepEqual(plan.bucket.permissions, ['read("any")']);
+  assert.equal(plan.bucket.fileSecurity, true);
+  assert.deepEqual(plan.bucket.writePermissions, []);
   assert.equal(plan.team.id, 'editors');
 });
 
@@ -83,6 +86,14 @@ test('unexpected indexes are rejected on every declared table, including public 
 test('team reruns do not compare roles omitted by the Teams GET response', () => {
   assert.doesNotThrow(() => assertTeamCompatible({name: 'Editors'}, {name: 'Editors', roles: ['owner', 'editor', 'contributor']}));
   assert.throws(() => assertTeamCompatible({name: 'Other'}, {name: 'Editors', roles: ['owner']}), /incompatible name/);
+});
+
+test('manual media buckets must match public-read, file-secured, write-denied policy', () => {
+  const plan = buildProvisioningPlan(schema, {databaseId: 'laudium_post', bucketId: 'laudium_media', teamName: 'Editors'});
+  const {writePermissions: _writePermissions, id: _id, ...expected} = plan.bucket;
+  assert.doesNotThrow(() => assertBucketCompatible(expected, expected));
+  assert.throws(() => assertBucketCompatible({...expected, permissions: []}, expected), /permissions/);
+  assert.throws(() => assertBucketCompatible({...expected, fileSecurity: false}, expected), /fileSecurity/);
 });
 
 test('manual public table definitions are accepted without weakening field or security contracts', () => {

@@ -93,9 +93,20 @@ export function assertTeamCompatible(existing, expected, label = 'team') {
   if (existing.name !== expected.name) throw new Error(`${label} exists with incompatible name`);
 }
 
+export function assertBucketCompatible(existing, expected, label = 'bucket') {
+  const properties = ['name', 'permissions', 'fileSecurity', 'enabled', 'maximumFileSize', 'allowedFileExtensions', 'compression', 'encryption', 'antivirus', 'transformations'];
+  const mismatch = properties.find(property => JSON.stringify(existing[property] ?? null) !== JSON.stringify(expected[property] ?? null));
+  if (mismatch) throw new Error(`${label} exists with incompatible ${mismatch}; refusing to overwrite settings`);
+}
+
 export function buildProvisioningPlan(schema, {databaseId, bucketId, teamName}) {
   if (!schema?.database?.id || !Array.isArray(schema.collections) || !schema.collections.length) {
     throw new Error('Schema must define a database and at least one collection');
+  }
+  const mediaBucket = schema.storage?.mediaBucket ?? {};
+  if ((mediaBucket.writePermissions ?? []).length) throw new Error('Media bucket must deny anonymous create, update, and delete permissions');
+  if (JSON.stringify(mediaBucket.permissions ?? ['read("any")']) !== JSON.stringify(['read("any")']) || mediaBucket.fileSecurity === false) {
+    throw new Error('Media bucket must allow anonymous reads with file-level security enabled');
   }
   const tables = schema.collections.map(collection => {
     const fields = Object.keys(collection.attributes ?? {});
@@ -125,7 +136,20 @@ export function buildProvisioningPlan(schema, {databaseId, bucketId, teamName}) 
   return {
     database: {id: databaseId, name: schema.database.name},
     tables,
-    bucket: {id: bucketId, name: 'Laudium Post Media'},
+    bucket: {
+      id: bucketId,
+      name: 'Laudium Post Media',
+      permissions: mediaBucket.permissions ?? ['read("any")'],
+      fileSecurity: mediaBucket.fileSecurity ?? true,
+      writePermissions: mediaBucket.writePermissions ?? [],
+      enabled: true,
+      maximumFileSize: 10 * 1024 * 1024,
+      allowedFileExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+      compression: 'none',
+      encryption: true,
+      antivirus: true,
+      transformations: true,
+    },
     team: {id: 'editors', name: teamName, roles: schema.teams?.[0]?.roles ?? ['owner', 'editor', 'contributor']},
   };
 }
@@ -228,13 +252,10 @@ async function ensureColumnsAndIndexes(api, databaseId, table) {
 
 async function ensureBucket(api, plan) {
   const resource = `/storage/buckets/${encodeURIComponent(plan.bucket.id)}`;
-  const body = {bucketId: plan.bucket.id, name: plan.bucket.name, permissions: [], fileSecurity: true, enabled: true, maximumFileSize: 10 * 1024 * 1024, allowedFileExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'], compression: 'none', encryption: true, antivirus: true, transformations: true};
+  const {id: _id, writePermissions: _writePermissions, ...bucketSettings} = plan.bucket;
+  const body = {bucketId: plan.bucket.id, ...bucketSettings};
   const current = await getOrCreate(api, resource, body);
-  if (!current.created) {
-    const properties = ['name', 'permissions', 'fileSecurity', 'enabled', 'maximumFileSize', 'allowedFileExtensions', 'compression', 'encryption', 'antivirus', 'transformations'];
-    const mismatch = properties.find(property => JSON.stringify(current.resource[property] ?? null) !== JSON.stringify(body[property] ?? null));
-    if (mismatch) throw new Error(`Bucket ${plan.bucket.id} exists with incompatible ${mismatch}; refusing to overwrite settings`);
-  }
+  if (!current.created) assertBucketCompatible(current.resource, body, `Bucket ${plan.bucket.id}`);
   console.log(`bucket ${plan.bucket.id} ${current.created ? 'created' : 'ready'}`);
 }
 

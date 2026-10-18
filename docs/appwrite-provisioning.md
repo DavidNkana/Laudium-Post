@@ -8,6 +8,8 @@ Appwrite's current TablesDB API exposes typed text/string/number/date columns bu
 
 If creating the tables manually in the Appwrite Console, set both columns of those two key indexes to **Descending** (`publishedAt`, `$id`; and `startsAt`, `$id`). Do not leave the console's default ascending order, because provisioning will reject that incompatible definition. The provisioning script sends the declared `orders` values through the TablesDB API and accepts the descending definitions from the schema.
 
+The media bucket intentionally has bucket-level `read("any")` but no anonymous create, update, or delete permissions. `fileSecurity` remains enabled: the publishing Function must upload private/unpublished files without public file permissions, and grant `read("any")` explicitly to each file only when its corresponding article/ad is published into a public projection. This is required because the React adapter builds anonymous `Storage.getFileView` URLs. Do not make the bucket or private files public as a shortcut. Repeat provisioning compares the complete bucket policy and refuses drift; a manually created bucket is compatible only when it matches this policy.
+
 The `editors` team's roles (`owner`, `editor`, `contributor`) are create-time/documented configuration. Appwrite's `GET /teams/{teamId}` response does not expose roles, so repeat provisioning validates only the existing team name and never fails because roles are absent or attempts to overwrite them.
 
 ## Run it
