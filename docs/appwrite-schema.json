@@ -5,8 +5,8 @@
       "id": "public_articles",
       "purpose": "Read-only projection of published articles; never write drafts here.",
       "permissions": ["read(\"any\")"],
-      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "text(65535)", "category": "enum[Community,Business,Culture,Sport,Civic]", "author": "string(120)", "status": "enum[Published]", "publishedAt": "datetime", "readTime": "string(30)", "accent": "string(30)", "featured": "boolean"},
-      "attributeMetadata": {"required": ["title","slug","excerpt","body","category","author","status","publishedAt","readTime","accent","featured"], "defaults": {"title":null,"slug":null,"excerpt":null,"body":null,"category":null,"author":null,"status":null,"publishedAt":null,"readTime":null,"accent":null,"featured":false}, "compatibleTypes": {"body":["text","longtext"]}},
+      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "text(65535)", "category": "enum[Community,Business,Culture,Sport,Civic]", "author": "string(120)", "status": "enum[Published]", "publishedAt": "datetime", "readTime": "string(30)", "accent": "string(30)", "featured": "boolean", "media": "text(65535)"},
+      "attributeMetadata": {"required": ["title","slug","excerpt","body","category","author","status","publishedAt","readTime","accent","featured"], "optional": ["media"], "defaults": {"title":null,"slug":null,"excerpt":null,"body":null,"category":null,"author":null,"status":null,"publishedAt":null,"readTime":null,"accent":null,"featured":false,"media":null}, "compatibleTypes": {"body":["text","longtext"],"media":["text","longtext"]}},
       "indexes": [{"key":"articles_status_published","type":"key","attributes":["status","publishedAt"]},{"key":"articles_published_order_id","type":"key","attributes":["publishedAt","$id"],"orders":["DESC","DESC"]},{"key":"articles_title_search","type":"fulltext","attributes":["title"]},{"key":"articles_excerpt_search","type":"fulltext","attributes":["excerpt"]}]
     },
     {
@@ -28,8 +28,8 @@
       "id": "editorial_articles",
       "purpose": "Private source records including drafts, schedules and moderation metadata.",
       "permissions": ["read(\"team:editors\")", "create(\"team:editors\")", "update(\"team:editors\")", "delete(\"team:editors\")"],
-      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "text(65535)", "category": "string(80)", "author": "string(120)", "status": "enum[Draft,Published,Scheduled,Archived]", "publishedAt": "datetime", "featured": "boolean"},
-      "attributeMetadata": {"required": ["title","slug","excerpt","body","category","author","status","publishedAt","featured"], "defaults": {"title":null,"slug":null,"excerpt":null,"body":null,"category":null,"author":null,"status":null,"publishedAt":null,"featured":false}, "compatibleTypes": {"body":["text","longtext"]}}
+      "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "text(65535)", "category": "string(80)", "author": "string(120)", "status": "enum[Draft,Published,Scheduled,Archived]", "publishedAt": "datetime", "featured": "boolean", "media": "text(65535)"},
+      "attributeMetadata": {"required": ["title","slug","excerpt","body","category","author","status","publishedAt","featured"], "optional": ["media"], "defaults": {"title":null,"slug":null,"excerpt":null,"body":null,"category":null,"author":null,"status":null,"publishedAt":null,"featured":false,"media":null}, "compatibleTypes": {"body":["text","longtext"],"media":["text","longtext"]}}
     },
     {
       "id": "advertiser_records",
@@ -52,6 +52,6 @@
     }
   ],
   "teams": [{"id": "editors", "roles": ["owner", "editor", "contributor"]}],
-  "storage": {"mediaBucket": {"permissions": ["read(\"any\")"], "fileSecurity": true, "writePermissions": [], "maximumFileSize": 52428800, "allowedFileExtensions": ["jpg", "jpeg", "png", "webp", "gif", "mp4"], "allowedMimeTypes": ["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4"]}},
+  "storage": {"mediaBucket": {"permissions": [], "fileSecurity": true, "writePermissions": [], "maximumFileSize": 52428800, "allowedFileExtensions": ["jpg", "jpeg", "png", "webp", "gif", "mp4"], "allowedMimeTypes": ["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4"]}},
   "publishing": "A trusted Appwrite Function copies only approved, active, date-live ad records into public_ads. Before writing the projection it applies the explicit public channel allowlist (phone/call, whatsapp, email, website, directionsUrl), validates tel/WhatsApp/mailto/HTTPS schemes, and copies each field only when its matching *Consent boolean is true (or when a legacy record has explicit contactConsent=true for all fields). Missing or false consent copies no contact field. public_ads.contacts contains only that sanitized projection, never raw private contact fields or consent flags. When a published projection references media, the Function grants file-level read(\"any\") to those files; drafts, scheduled, rejected, archived, and private media retain no public read permission. The client applies the same allowlist and scheme validation before returning/rendering; client SDKs never read private collections. Never expose API keys in VITE_* variables."
 }

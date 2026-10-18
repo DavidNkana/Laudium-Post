@@ -105,8 +105,8 @@ export function buildProvisioningPlan(schema, {databaseId, bucketId, teamName}) 
   }
   const mediaBucket = schema.storage?.mediaBucket ?? {};
   if ((mediaBucket.writePermissions ?? []).length) throw new Error('Media bucket must deny anonymous create, update, and delete permissions');
-  if (JSON.stringify(mediaBucket.permissions ?? ['read("any")']) !== JSON.stringify(['read("any")']) || mediaBucket.fileSecurity === false) {
-    throw new Error('Media bucket must allow anonymous reads with file-level security enabled');
+  if ((mediaBucket.permissions ?? []).length || mediaBucket.fileSecurity === false) {
+    throw new Error('Media bucket must deny bucket-level anonymous reads and keep file-level security enabled');
   }
   const allowedExtensions = mediaBucket.allowedFileExtensions ?? ['jpg', 'jpeg', 'png', 'webp', 'gif'];
   const allowedMimeTypes = mediaBucket.allowedMimeTypes ?? ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -144,7 +144,7 @@ export function buildProvisioningPlan(schema, {databaseId, bucketId, teamName}) 
     bucket: {
       id: bucketId,
       name: 'Laudium Post Media',
-      permissions: mediaBucket.permissions ?? ['read("any")'],
+      permissions: mediaBucket.permissions ?? [],
       fileSecurity: mediaBucket.fileSecurity ?? true,
       writePermissions: mediaBucket.writePermissions ?? [],
       enabled: true,
