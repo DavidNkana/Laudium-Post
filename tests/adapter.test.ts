@@ -1,4 +1,4 @@
-import {describe, expect, it} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, TablesDbReader, contentAdapter, filterLiveAds, listAllAds, listAllPlacementAds, resolveContentMode, serializeStructuredValue, toAd, toArticle} from '../src/adapter';
 import {requiredPublicIndexes, verifySearchIndexes} from '../src/appwriteSetup';
 
@@ -104,5 +104,17 @@ describe('content adapter configuration', () => {
     expect(calls[1].url).toBe('https://fra.cloud.appwrite.io/v1/tablesdb/laudium_post/tables/public_articles/rows/row-1');
     expect(calls[0].headers?.['X-Appwrite-Project']).toBe('project');
     expect(calls.map(call => call.url).join(' ')).not.toContain('/collections/');
+  });
+  it('invokes the default browser fetch with the global context', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(function (this: typeof globalThis, input) {
+      expect(this).toBe(globalThis);
+      expect(String(input)).toContain('/tablesdb/database/tables/articles/rows');
+      return Promise.resolve(new Response(JSON.stringify({rows: []}), {status: 200}));
+    });
+    try {
+      await expect(new TablesDbReader('https://example.com/v1', 'project', 'database').listRows('articles')).resolves.toEqual({rows: []});
+    } finally {
+      fetchMock.mockRestore();
+    }
   });
 });

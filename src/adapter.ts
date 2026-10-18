@@ -37,6 +37,7 @@ export type AppwriteConfig = {endpoint: string; projectId: string; databaseId: s
 
 type TablesDbResponse = {rows?: Record<string, any>[]; total?: number};
 type AppwriteFetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+const appwriteFetch: AppwriteFetcher = (input, init) => globalThis.fetch(input, init);
 
 /**
  * The installed web SDK (17.0.2) predates TablesDB, so its Databases service
@@ -46,7 +47,7 @@ type AppwriteFetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise
  * deliberately never falls back to the legacy /databases/.../collections API.
  */
 export class TablesDbReader {
-  constructor(private readonly endpoint: string, private readonly projectId: string, private readonly databaseId: string, private readonly fetcher: AppwriteFetcher = fetch) {}
+  constructor(private readonly endpoint: string, private readonly projectId: string, private readonly databaseId: string, private readonly fetcher: AppwriteFetcher = appwriteFetch) {}
 
   private url(tableId: string, rowId?: string) {
     const path = `/tablesdb/${encodeURIComponent(this.databaseId)}/tables/${encodeURIComponent(tableId)}/rows${rowId ? `/${encodeURIComponent(rowId)}` : ''}`;
