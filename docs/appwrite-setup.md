@@ -4,8 +4,8 @@ The default is `VITE_CONTENT_MODE=appwrite`: the reader fails closed rather than
 
 To use production content:
 
-1. Create the database and collections in `docs/appwrite-schema.json`. Set `VITE_CONTENT_MODE=appwrite`, the endpoint, project, database, and **public** collection IDs in `.env.local`.
-2. Provision every attribute and index in `docs/appwrite-schema.json` before launch. In particular, `Query.search` needs the five named full-text indexes (`articles_title_search`, `articles_excerpt_search`, `ads_business_search`, `ads_title_search`, `ads_category_search`); the app does not silently fall back to an unindexed scan. When creating the ordering indexes manually, set `articles_published_order_id` to `publishedAt DESC, $id DESC` and `ads_starts_order_id` to `startsAt DESC, $id DESC`; these directions must match the adapter queries. Grant `read("any")` only to `public_articles`, `public_ads`, and `public_categories`. The public ads projection contains no phone/email/private advertiser fields. The adapter additionally filters articles to `status=Published` and `publishedAt <= now`, and ads to `status=Approved`, `active=true`, `startsAt <= now <= endsAt`, with valid dates required client-side.
+1. Create the database and TablesDB tables in `docs/appwrite-schema.json`. Set `VITE_CONTENT_MODE=appwrite`, the endpoint, project, database, and **public** table IDs in `.env.local`.
+2. Provision every column and index in `docs/appwrite-schema.json` before launch. In particular, `Query.search` needs the five named full-text indexes (`articles_title_search`, `articles_excerpt_search`, `ads_business_search`, `ads_title_search`, `ads_category_search`); the app does not silently fall back to an unindexed scan. When creating the ordering indexes manually, set `articles_published_order_id` to `publishedAt DESC, $id DESC` and `ads_starts_order_id` to `startsAt DESC, $id DESC`; these directions must match the adapter queries. Grant `read("any")` only to `public_articles`, `public_ads`, and `public_categories`. The public ads projection contains no phone/email/private advertiser fields. The adapter reads rows through `/tablesdb/{databaseId}/tables/{tableId}/rows`, preserves row IDs as cursors, and additionally filters articles to `status=Published` and `publishedAt <= now`, and ads to `status=Approved`, `active=true`, `startsAt <= now <= endsAt`, with valid dates required client-side.
 3. Keep `editorial_articles` and `advertiser_records` without public read permission. A trusted Appwrite Function, using a server-only API key, should project approved/current records into the public collections. This boundary prevents drafts, scheduled, archived, pending, or private advertiser data leaking through a client query.
 4. Create an editor team and restrict all private collection writes to that team. Enforce auth and role checks in the publishing function. Do not put an Appwrite API key or other admin secret in a `VITE_*` variable.
 5. Add a Storage bucket for media with image transformations and size/MIME limits. Serve only published media publicly. Production corrections and advertiser submissions should go through rate-limited server functions.
@@ -19,7 +19,7 @@ If Appwrite mode has missing public configuration or a read fails, the reader sh
 | `VITE_CONTENT_MODE` | public | `appwrite` (default) or `demo`; demo is active only with the local flag below |
 | `VITE_LOCAL_DEMO_MODE` | public | Must be exactly `true` together with `VITE_CONTENT_MODE=demo`; otherwise Appwrite/live mode is used |
 | `VITE_APPWRITE_ENDPOINT`, `VITE_APPWRITE_PROJECT_ID` | public | Appwrite public SDK target |
-| `VITE_APPWRITE_DATABASE_ID`, `VITE_APPWRITE_*_COLLECTION_ID`, `VITE_APPWRITE_MEDIA_BUCKET_ID` | public | Read-only public projection IDs |
+| `VITE_APPWRITE_DATABASE_ID`, `VITE_APPWRITE_*_COLLECTION_ID`, `VITE_APPWRITE_MEDIA_BUCKET_ID` | public | Read-only public table/bucket IDs; the legacy `*_COLLECTION_ID` variable names are retained for deployment compatibility |
 | `VITE_APPWRITE_STAFF_TEAM_ID` | public | Team identifier only; auth still gates access |
 | `VITE_ANALYTICS_ENDPOINT`, `VITE_PUBLICATION_WHATSAPP_NUMBER` | public | Optional reader integrations (analytics is required for durable live measurement) |
 | `APPWRITE_API_KEY`, `APPWRITE_DATABASE_ID`, `APPWRITE_ANALYTICS_COLLECTION_ID`, `APP_ALLOWED_ORIGINS` | server-only | Vercel analytics ingestion; never use `VITE_` |
@@ -40,7 +40,7 @@ Schedule a trusted Appwrite Function to refresh `public_articles` and `public_ad
 
 ## Ordering and cursors
 
-Public article pages are ordered by `publishedAt DESC, $id DESC`; ad pages use `startsAt DESC, $id DESC`. The timestamp is the business order and `$id` is the unique deterministic tie-breaker. Every page repeats that order before applying `cursorAfter(lastDocumentId)`, so equal timestamps cannot reorder records across page boundaries.
+Public article pages are ordered by `publishedAt DESC, $id DESC`; ad pages use `startsAt DESC, $id DESC`. The timestamp is the business order and `$id` is the unique deterministic tie-breaker. Every page repeats that order before applying `cursorAfter(lastRowId)`, so equal timestamps cannot reorder records across page boundaries.
 
 ## Analytics durability
 

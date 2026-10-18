@@ -1,4 +1,4 @@
-import {Client, Databases, Query, Storage} from 'appwrite';
+import {Client, Query, Storage} from 'appwrite';
 import {articles, ads, Article, Ad, AdMedia, AdPlacement, Category} from './data';
 import {eligibleAds, publicAdContacts} from './advertising';
 
@@ -34,6 +34,43 @@ export class DemoContentAdapter implements ContentAdapter {
 }
 
 export type AppwriteConfig = {endpoint: string; projectId: string; databaseId: string; articlesCollectionId: string; adsCollectionId: string; categoriesCollectionId: string; mediaBucketId?: string};
+
+type TablesDbResponse = {rows?: Record<string, any>[]; total?: number};
+type AppwriteFetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+/**
+ * The installed web SDK (17.0.2) predates TablesDB, so its Databases service
+ * cannot read tables created by the current Appwrite console. Keep the REST
+ * seam small and typed until the SDK used by this app exposes TablesDB.
+ * TablesDB's public read endpoints are /tablesdb/.../tables/.../rows; this
+ * deliberately never falls back to the legacy /databases/.../collections API.
+ */
+export class TablesDbReader {
+  constructor(private readonly endpoint: string, private readonly projectId: string, private readonly databaseId: string, private readonly fetcher: AppwriteFetcher = fetch) {}
+
+  private url(tableId: string, rowId?: string) {
+    const path = `/tablesdb/${encodeURIComponent(this.databaseId)}/tables/${encodeURIComponent(tableId)}/rows${rowId ? `/${encodeURIComponent(rowId)}` : ''}`;
+    return new URL(`${this.endpoint.replace(/\/$/, '')}${path}`);
+  }
+  async listRows(tableId: string, queries: string[] = []) {
+    const url = this.url(tableId);
+    queries.forEach(query => url.searchParams.append('queries[]', query));
+    const response = await this.fetcher(url, {headers: {'X-Appwrite-Project': this.projectId, Accept: 'application/json'}});
+    return this.read<TablesDbResponse>(response);
+  }
+  async getRow(tableId: string, rowId: string) {
+    const response = await this.fetcher(this.url(tableId, rowId), {headers: {'X-Appwrite-Project': this.projectId, Accept: 'application/json'}});
+    return this.read<Record<string, any>>(response);
+  }
+  private async read<T>(response: Response): Promise<T> {
+    if (!response.ok) {
+      const error = new Error(`Appwrite TablesDB request failed (${response.status})`);
+      Object.assign(error, {code: response.status});
+      throw error;
+    }
+    return response.json() as Promise<T>;
+  }
+}
 
 /**
  * Appwrite's cursor is the last document id, so every public query must use
@@ -159,43 +196,45 @@ function readConfig(): AppwriteConfig {
 }
 
 export class AppwriteContentAdapter implements ContentAdapter {
-  private readonly databases: Databases;
+  private readonly tables: TablesDbReader;
   private readonly storage: Storage;
   private readonly config: AppwriteConfig;
   constructor() {
     this.config = readConfig();
     const client = new Client().setEndpoint(this.config.endpoint).setProject(this.config.projectId);
-    this.databases = new Databases(client);
+    this.tables = new TablesDbReader(this.config.endpoint, this.config.projectId, this.config.databaseId);
     this.storage = new Storage(client);
   }
   async listArticles(search = '', category = '', options: PageOptions = {}) {
     const limit = Math.min(Math.max(options.limit || 6, 1), AD_PAGE_LIMIT);
-    const result = await this.databases.listDocuments(this.config.databaseId, this.config.articlesCollectionId, articleQueries(search, category, limit, options.cursor));
-    return {items: result.documents.map(toArticle), nextCursor: result.documents.at(-1)?.$id, hasMore: result.documents.length === limit};
+    const result = await this.tables.listRows(this.config.articlesCollectionId, articleQueries(search, category, limit, options.cursor));
+    const rows = result.rows || [];
+    return {items: rows.map(toArticle), nextCursor: rows.at(-1)?.$id, hasMore: rows.length === limit};
   }
   async getArticle(id: string) {
     try {
-      const document = await this.databases.getDocument(this.config.databaseId, this.config.articlesCollectionId, id);
+      const document = await this.tables.getRow(this.config.articlesCollectionId, id);
       return document.status === 'Published' && new Date(document.publishedAt) <= new Date() ? toArticle(document) : undefined;
     } catch (error) { if ((error as {code?: number}).code === 404) return undefined; throw error; }
   }
   async listAds(search = '', options: PageOptions = {}, placement?: AdPlacement) {
     const limit = Math.min(Math.max(options.limit || 6, 1), AD_PAGE_LIMIT);
-    const result = await this.databases.listDocuments(this.config.databaseId, this.config.adsCollectionId, adQueries(search, limit, options.cursor, new Date(), placement));
+    const result = await this.tables.listRows(this.config.adsCollectionId, adQueries(search, limit, options.cursor, new Date(), placement));
     // Query bounds reduce leakage and work efficiently; this second check is
     // intentional because public projections can be stale or malformed.
-    const items = filterLiveAds(result.documents).filter(document => !placement || Array.isArray(document.placements) && document.placements.includes(placement)).map(document => toAd(document, this.storage, this.config.mediaBucketId));
-    return {items, nextCursor: result.documents.at(-1)?.$id, hasMore: result.documents.length === limit};
+    const rows = result.rows || [];
+    const items = filterLiveAds(rows).filter(document => !placement || Array.isArray(document.placements) && document.placements.includes(placement)).map(document => toAd(document, this.storage, this.config.mediaBucketId));
+    return {items, nextCursor: rows.at(-1)?.$id, hasMore: rows.length === limit};
   }
   async getAd(id: string) {
     try {
-      const document = await this.databases.getDocument(this.config.databaseId, this.config.adsCollectionId, id);
+      const document = await this.tables.getRow(this.config.adsCollectionId, id);
       return isLiveAdDocument(document) ? toAd(document, this.storage, this.config.mediaBucketId) : undefined;
     } catch (error) { if ((error as {code?: number}).code === 404) return undefined; throw error; }
   }
   async listCategories() {
-    const result = await this.databases.listDocuments(this.config.databaseId, this.config.categoriesCollectionId, [Query.equal('active', true), Query.orderAsc('sortOrder'), Query.limit(100)]);
-    return result.documents.map(document => document.name as Category).filter(Boolean);
+    const result = await this.tables.listRows(this.config.categoriesCollectionId, [Query.equal('active', true), Query.orderAsc('sortOrder'), Query.limit(100)]);
+    return (result.rows || []).map(row => row.name as Category).filter(Boolean);
   }
 }
 

@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, contentAdapter, filterLiveAds, listAllAds, listAllPlacementAds, resolveContentMode, serializeStructuredValue, toAd, toArticle} from '../src/adapter';
+import {adQueries, articleQueries, AppwriteContentAdapter, DemoContentAdapter, TablesDbReader, contentAdapter, filterLiveAds, listAllAds, listAllPlacementAds, resolveContentMode, serializeStructuredValue, toAd, toArticle} from '../src/adapter';
 import {requiredPublicIndexes, verifySearchIndexes} from '../src/appwriteSetup';
 
 describe('content adapter configuration', () => {
@@ -83,5 +83,26 @@ describe('content adapter configuration', () => {
     expect(ad.media).toBeUndefined();
     expect(ad.contacts).toBeUndefined();
     expect(toArticle({$id: 'article', body: '{not-json', publishedAt: '2026-10-16T00:00:00.000Z'}).body).toEqual([]);
+  });
+  it('reads TablesDB rows, not legacy collection documents, with encoded queries and row paths', async () => {
+    const calls: Array<{url: string; headers?: Headers}> = [];
+    const reader = new TablesDbReader('https://fra.cloud.appwrite.io/v1', 'project', 'laudium_post', async (input, init) => {
+      const url = String(input);
+      calls.push({url, headers: init?.headers as Headers});
+      const adRow = {$id: 'ad-row', media: '{"url":"https://example.com/ad.png","type":"image","width":1200,"height":800}', contacts: '{"website":"https://example.com"}'};
+      const payload = url.endsWith('/row-1') ? {$id: 'row-1', title: 'A row'} : url.includes('/public_ads/') ? {rows: [adRow], total: 1} : {rows: [{$id: 'row-1', title: 'A row'}], total: 1};
+      return new Response(JSON.stringify(payload), {status: 200, headers: {'Content-Type': 'application/json'}});
+    });
+    const result = await reader.listRows('public_articles', ['{"method":"limit","values":[6]}']);
+    const row = await reader.getRow('public_articles', 'row-1');
+    const adRows = await reader.listRows('public_ads');
+    expect(result.rows?.[0].$id).toBe('row-1');
+    expect(row.$id).toBe('row-1');
+    expect(toAd(adRows.rows![0]).media?.url).toBe('https://example.com/ad.png');
+    expect(toAd(adRows.rows![0]).contacts).toEqual({website: 'https://example.com'});
+    expect(calls[0].url).toContain('/v1/tablesdb/laudium_post/tables/public_articles/rows?queries%5B%5D=');
+    expect(calls[1].url).toBe('https://fra.cloud.appwrite.io/v1/tablesdb/laudium_post/tables/public_articles/rows/row-1');
+    expect(calls[0].headers?.['X-Appwrite-Project']).toBe('project');
+    expect(calls.map(call => call.url).join(' ')).not.toContain('/collections/');
   });
 });

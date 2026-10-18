@@ -36,11 +36,13 @@ export function validateAnalyticsConfig(endpoint = import.meta.env.VITE_ANALYTIC
   return {durable: true, endpoint, error: undefined};
 }
 
-/** Emit a production configuration warning once; demo mode remains console-observable only. */
+/** Emit a production configuration warning once without competing with content errors. */
 export function announceAnalyticsConfig(config: AnalyticsConfig) {
   if (!config.error || warnedConfigErrors.has(config.error)) return;
   warnedConfigErrors.add(config.error);
-  console.error(`[analytics] ${config.error}`);
+  // Analytics is important for measuring the business, but it must not look
+  // like the reader's primary content failure in production diagnostics.
+  console.warn(`[analytics] ${config.error}`);
 }
 
 export function sanitizeAnalyticsProperties(name: EventName, properties: Record<string, AnalyticsValue>) {

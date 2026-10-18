@@ -31,7 +31,7 @@ describe('analytics seam', () => {
   });
   it('announces a live configuration failure only once', () => {
     const error = 'Production analytics requires VITE_ANALYTICS_ENDPOINT (an HTTPS event-ingestion endpoint).';
-    const consoleMock = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const consoleMock = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const config = validateAnalyticsConfig(undefined, true);
     announceAnalyticsConfig(config);
     announceAnalyticsConfig(config);
