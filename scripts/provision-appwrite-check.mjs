@@ -15,6 +15,8 @@ test('schema maps to a complete TablesDB plan without secrets or deletes', () =>
   assert.deepEqual(plan.bucket.permissions, ['read("any")']);
   assert.equal(plan.bucket.fileSecurity, true);
   assert.deepEqual(plan.bucket.writePermissions, []);
+  assert.equal(plan.bucket.maximumFileSize, 50 * 1024 * 1024);
+  assert.deepEqual(plan.bucket.allowedFileExtensions, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4']);
   assert.equal(plan.team.id, 'editors');
 });
 

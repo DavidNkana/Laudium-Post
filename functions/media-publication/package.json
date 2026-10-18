@@ -1,0 +1,6 @@
+{
+  "name": "laudium-media-publication",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=18"}
+}

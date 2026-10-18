@@ -52,6 +52,6 @@
     }
   ],
   "teams": [{"id": "editors", "roles": ["owner", "editor", "contributor"]}],
-  "storage": {"mediaBucket": {"permissions": ["read(\"any\")"], "fileSecurity": true, "writePermissions": []}},
+  "storage": {"mediaBucket": {"permissions": ["read(\"any\")"], "fileSecurity": true, "writePermissions": [], "maximumFileSize": 52428800, "allowedFileExtensions": ["jpg", "jpeg", "png", "webp", "gif", "mp4"], "allowedMimeTypes": ["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4"]}},
   "publishing": "A trusted Appwrite Function copies only approved, active, date-live ad records into public_ads. Before writing the projection it applies the explicit public channel allowlist (phone/call, whatsapp, email, website, directionsUrl), validates tel/WhatsApp/mailto/HTTPS schemes, and copies each field only when its matching *Consent boolean is true (or when a legacy record has explicit contactConsent=true for all fields). Missing or false consent copies no contact field. public_ads.contacts contains only that sanitized projection, never raw private contact fields or consent flags. When a published projection references media, the Function grants file-level read(\"any\") to those files; drafts, scheduled, rejected, archived, and private media retain no public read permission. The client applies the same allowlist and scheme validation before returning/rendering; client SDKs never read private collections. Never expose API keys in VITE_* variables."
 }

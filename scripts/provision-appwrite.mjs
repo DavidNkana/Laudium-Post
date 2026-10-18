@@ -108,6 +108,11 @@ export function buildProvisioningPlan(schema, {databaseId, bucketId, teamName}) 
   if (JSON.stringify(mediaBucket.permissions ?? ['read("any")']) !== JSON.stringify(['read("any")']) || mediaBucket.fileSecurity === false) {
     throw new Error('Media bucket must allow anonymous reads with file-level security enabled');
   }
+  const allowedExtensions = mediaBucket.allowedFileExtensions ?? ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+  const allowedMimeTypes = mediaBucket.allowedMimeTypes ?? ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (mediaBucket.maximumFileSize !== 52428800 || JSON.stringify(allowedExtensions) !== JSON.stringify(['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4']) || JSON.stringify(allowedMimeTypes) !== JSON.stringify(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4'])) {
+    throw new Error('Media bucket must use the documented 50 MiB image/MP4 upload policy');
+  }
   const tables = schema.collections.map(collection => {
     const fields = Object.keys(collection.attributes ?? {});
     const metadata = collection.attributeMetadata ?? {};
@@ -143,8 +148,8 @@ export function buildProvisioningPlan(schema, {databaseId, bucketId, teamName}) 
       fileSecurity: mediaBucket.fileSecurity ?? true,
       writePermissions: mediaBucket.writePermissions ?? [],
       enabled: true,
-      maximumFileSize: 10 * 1024 * 1024,
-      allowedFileExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+      maximumFileSize: mediaBucket.maximumFileSize,
+      allowedFileExtensions: allowedExtensions,
       compression: 'none',
       encryption: true,
       antivirus: true,
