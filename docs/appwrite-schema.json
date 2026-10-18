@@ -7,7 +7,7 @@
       "permissions": ["read(\"any\")"],
       "attributes": {"title": "string(120)", "slug": "string(140)", "excerpt": "string(300)", "body": "text(65535)", "category": "enum[Community,Business,Culture,Sport,Civic]", "author": "string(120)", "status": "enum[Published]", "publishedAt": "datetime", "readTime": "string(30)", "accent": "string(30)", "featured": "boolean"},
       "attributeMetadata": {"required": ["title","slug","excerpt","body","category","author","status","publishedAt","readTime","accent","featured"], "defaults": {"title":null,"slug":null,"excerpt":null,"body":null,"category":null,"author":null,"status":null,"publishedAt":null,"readTime":null,"accent":null,"featured":false}, "compatibleTypes": {"body":["text","longtext"]}},
-      "indexes": [{"key":"articles_status_published","type":"key","attributes":["status","publishedAt"]},{"key":"articles_published_order_id","type":"key","attributes":["publishedAt","$id"]},{"key":"articles_title_search","type":"fulltext","attributes":["title"]},{"key":"articles_excerpt_search","type":"fulltext","attributes":["excerpt"]}]
+      "indexes": [{"key":"articles_status_published","type":"key","attributes":["status","publishedAt"]},{"key":"articles_published_order_id","type":"key","attributes":["publishedAt","$id"],"orders":["DESC","DESC"]},{"key":"articles_title_search","type":"fulltext","attributes":["title"]},{"key":"articles_excerpt_search","type":"fulltext","attributes":["excerpt"]}]
     },
     {
       "id": "public_ads",
@@ -15,7 +15,7 @@
       "permissions": ["read(\"any\")"],
       "attributes": {"business": "string(120)", "title": "string(140)", "description": "string(500)", "offer": "string(500)", "category": "string(80)", "location": "string(180)", "serviceArea": "string(180)", "status": "enum[Approved]", "active": "boolean", "startsAt": "datetime", "endsAt": "datetime", "accent": "string(30)", "featured": "boolean", "media": "text(65535)", "contacts": "text(65535)", "placements": "string[]", "priority": "integer", "rotationKey": "string(120)"},
       "attributeMetadata": {"required": ["business","title","description","offer","category","location","serviceArea","status","active","startsAt","endsAt","accent","featured","placements","priority","rotationKey"], "optional": ["media","contacts"], "defaults": {"business":null,"title":null,"description":null,"offer":null,"category":null,"location":null,"serviceArea":null,"status":null,"active":false,"startsAt":null,"endsAt":null,"accent":null,"featured":false,"media":null,"contacts":null,"placements":null,"priority":0,"rotationKey":null}, "compatibleTypes": {"media":["text","longtext"],"contacts":["text","longtext"]}},
-      "indexes": [{"key":"ads_live_order","type":"key","attributes":["status","active","startsAt","endsAt"]},{"key":"ads_starts_order_id","type":"key","attributes":["startsAt","$id"]},{"key":"ads_business_search","type":"fulltext","attributes":["business"]},{"key":"ads_title_search","type":"fulltext","attributes":["title"]},{"key":"ads_category_search","type":"fulltext","attributes":["category"]}]
+      "indexes": [{"key":"ads_live_order","type":"key","attributes":["status","active","startsAt","endsAt"]},{"key":"ads_starts_order_id","type":"key","attributes":["startsAt","$id"],"orders":["DESC","DESC"]},{"key":"ads_business_search","type":"fulltext","attributes":["business"]},{"key":"ads_title_search","type":"fulltext","attributes":["title"]},{"key":"ads_category_search","type":"fulltext","attributes":["category"]}]
     },
     {
       "id": "public_categories",

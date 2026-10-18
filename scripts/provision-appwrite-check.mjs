@@ -8,6 +8,8 @@ test('schema maps to a complete TablesDB plan without secrets or deletes', () =>
   const plan = buildProvisioningPlan(schema, {databaseId: 'laudium_post', bucketId: 'laudium_media', teamName: 'Editors'});
   assert.equal(plan.tables.length, 7);
   assert.equal(plan.tables.find(table => table.id === 'public_articles').indexes.length, 4);
+  assert.deepEqual(plan.tables.find(table => table.id === 'public_articles').indexes.find(index => index.key === 'articles_published_order_id').orders, ['DESC', 'DESC']);
+  assert.deepEqual(plan.tables.find(table => table.id === 'public_ads').indexes.find(index => index.key === 'ads_starts_order_id').orders, ['DESC', 'DESC']);
   assert.deepEqual(parseAttribute('enum[Draft,Published]'), {type: 'enum', elements: ['Draft', 'Published']});
   assert.equal(plan.bucket.id, 'laudium_media');
   assert.equal(plan.team.id, 'editors');
@@ -41,6 +43,7 @@ test('existing row security, permissions, and schema drift fail closed', () => {
   assert.throws(() => assertColumnCompatible({type: 'string', size: 120, array: false, required: false}, {type: 'string', size: 140, array: false, required: false}), /size/);
   assert.throws(() => assertColumnCompatible({type: 'longtext', array: false, required: true}, {type: 'string', size: 140, array: false, required: true}), /type/);
   assert.throws(() => assertIndexCompatible({type: 'key', columns: ['publishedAt', '$id'], orders: ['ASC', 'ASC']}, {type: 'key', columns: ['publishedAt', '$id'], orders: ['DESC', 'DESC']}), /incompatible/);
+  assert.doesNotThrow(() => assertIndexCompatible({type: 'key', columns: ['publishedAt', '$id'], orders: ['DESC', 'DESC']}, {type: 'key', columns: ['publishedAt', '$id'], orders: ['DESC', 'DESC']}));
 });
 
 test('unexpected columns are rejected on every declared table, including public tables', () => {
