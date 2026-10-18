@@ -1,0 +1,15 @@
+{
+  "name": "LaudiumBiz",
+  "short_name": "LaudiumBiz",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#F5EEDB",
+  "background_color": "#F5EEDB",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%236f1d2a'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='17' fill='white'%3EL%3C/text%3E%3C/svg%3E",
+      "sizes": "32x32",
+      "type": "image/svg+xml"
+    }
+  ]
+}
