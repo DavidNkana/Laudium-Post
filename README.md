@@ -1,6 +1,6 @@
-# LaudiumBiz
+# Laudium Post
 
-LaudiumBiz is a polished responsive local-news reader built with TypeScript, React and Vite. It is suitable for Vercel web delivery and a Capacitor shell for iOS/Android.
+Laudium Post is a polished responsive local-news reader built with TypeScript, React and Vite. It is suitable for Vercel web delivery and a Capacitor shell for iOS/Android.
 
 ## Run locally
 
@@ -19,7 +19,7 @@ Residents want a calm, trustworthy way to know what is happening nearby; local b
 
 ## Configuration
 
-See `.env.example` and `docs/appwrite-setup.md`. `src/adapter.ts` is the remote-content seam: keep demo mode cheap and deterministic while Appwrite is validated. `vercel.json` supports client-side routes. `capacitor.config.ts` presents the native app as **LaudiumBiz** and is ready for `npx cap add ios` / `npx cap add android` after installing the platform packages. The repository/package identity remains `Laudium-Post` / `laudium-post` for compatibility.
+See `.env.example` and `docs/appwrite-setup.md`. `src/adapter.ts` is the remote-content seam: keep demo mode cheap and deterministic while Appwrite is validated. `vercel.json` supports client-side routes. `capacitor.config.ts` presents the native app as **Laudium Post** and is ready for `npx cap add ios` / `npx cap add android` after installing the platform packages. The repository/package identity remains `Laudium-Post` / `laudium-post` for compatibility.
 
 ## Editorial/admin flows
 

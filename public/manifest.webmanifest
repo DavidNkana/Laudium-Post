@@ -1,19 +1,19 @@
 {
-  "name": "LaudiumBiz",
-  "short_name": "LaudiumBiz",
+  "name": "Laudium Post",
+  "short_name": "Laudium Post",
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#F5EEDB",
   "background_color": "#F5EEDB",
   "icons": [
     {
-      "src": "/icons/laudiumbiz-192.svg",
+      "src": "/icons/laudium-post-192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/laudiumbiz-512.svg",
+      "src": "/icons/laudium-post-512.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"

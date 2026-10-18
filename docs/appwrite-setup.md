@@ -43,7 +43,7 @@ Schedule a trusted Appwrite Function to refresh `public_articles` and `public_ad
 
 ## Capacitor
 
-The native app is named **LaudiumBiz** (`appName`); the stable package ID remains `com.laudiumpost.app` for upgrade compatibility. `webDir` is `dist`; run `npm run build`, then install platform packages and run `npx cap add ios` and/or `npx cap add android`, followed by `npx cap sync` and `npx cap open ios`/`npx cap open android`. Native directories are intentionally not committed from this environment. Use HTTPS Appwrite endpoints and configure universal/app links in the native projects when distribution URLs are known.
+The native app is named **Laudium Post** (`appName`); the stable package ID remains `com.laudiumpost.app` for upgrade compatibility. `webDir` is `dist`; run `npm run build`, then install platform packages and run `npx cap add ios` and/or `npx cap add android`, followed by `npx cap sync` and `npx cap open ios`/`npx cap open android`. Native directories are intentionally not committed from this environment. Use HTTPS Appwrite endpoints and configure universal/app links in the native projects when distribution URLs are known.
 
 ## Ordering and cursors
 

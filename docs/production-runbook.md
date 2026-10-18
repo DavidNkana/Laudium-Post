@@ -32,4 +32,4 @@ npx cap open ios
 npx cap open android
 ```
 
-`capacitor.config.ts` presents the shell as **LaudiumBiz**, while retaining the stable `com.laudiumpost.app` app ID for upgrade compatibility. It uses the bundled `dist` directory and HTTPS Android scheme. The current web hash deep links (`#article-ID` and `#ad-ID`) remain safe in the shell. Configure platform universal/app links only after the production domain is known; no placeholder URL is shipped.
+`capacitor.config.ts` presents the shell as **Laudium Post**, while retaining the stable `com.laudiumpost.app` app ID for upgrade compatibility. It uses the bundled `dist` directory and HTTPS Android scheme. The current web hash deep links (`#article-ID` and `#ad-ID`) remain safe in the shell. Configure platform universal/app links only after the production domain is known; no placeholder URL is shipped.
